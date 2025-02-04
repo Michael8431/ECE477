@@ -7,3 +7,7 @@
 
 # Note for Developers
 If new branch is not showing in VSCode, run git fetch --all
+
+To see description of function, put cursor on the function call and hit CTRL + SPACE
+    Requires IntelliSense
+
