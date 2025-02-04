@@ -1,3 +1,3 @@
 # ECE477
 
-#Welcome to GRIDWARS
+# Welcome to GRIDWARS
