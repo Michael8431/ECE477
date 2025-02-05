@@ -1,7 +1,7 @@
 # Main File to Call All implemented functions.
 
-import gridwars as gw
-import usb_port as usb
+from gridwars import grid_wars
+from usb_port import usb_port
 
 def main():
     print("Main")
