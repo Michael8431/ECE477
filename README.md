@@ -17,3 +17,5 @@ To move sub-branch pointer to end of main branch, inside of sub-branch:
 
 If you want to grab one file from a different branch, b, while in branch a, run this in branch a:
     git checkout b -- path\to\file.py
+
+Microcontroller Files are running on Thonny
