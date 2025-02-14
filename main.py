@@ -13,7 +13,7 @@ import pygame
 def main():
     pygame.init()
     screen_info = pygame.display.Info()
-    screen = pygame.display.set_mode((screen_info.current_w, screen_info.current_h))
+    screen = pygame.display.set_mode((screen_info.current_w, screen_info.current_h), pygame.FULLSCREEN)
     clock = pygame.time.Clock()
     running = True
     
