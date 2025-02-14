@@ -12,7 +12,8 @@ import pygame
 
 def main():
     pygame.init()
-    screen = pygame.display.set_mode((1280, 720))
+    screen_info = pygame.display.Info()
+    screen = pygame.display.set_mode((screen_info.current_w, screen_info.current_h))
     clock = pygame.time.Clock()
     running = True
     
@@ -32,6 +33,11 @@ def main():
         #Create group of cards
         # p1_cards = pygame.sprite.Group() #creates group of cards for P1(bottom of screen)
         
+        # this_card = Card(screen, 'joker_card.jpg', 0, (1,1))
+        # this_card.place_card()
+        
+        # this_card2 = Card(screen, 'joker_card.jpg', 0, (1,2))
+        # this_card2.place_card()
         jokers = []
         for row_i in range(4):
             row = []
