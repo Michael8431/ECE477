@@ -1,13 +1,14 @@
 import mfrc522
+import time #gridwards edit added by Michael to test a loop termination on timeout
 from os import uname
 
-
 def do_read():
-
+	from runrfid import stop_read, start_read, get_reading #gridwars edit to enable a force stop of the reading for RFID tags --Michael
+	
 	if uname()[0] == 'WiPy':
 		rdr = mfrc522.MFRC522("GP14", "GP16", "GP15", "GP22", "GP17")
 	elif uname()[0] == 'esp32':
-		rdr = mfrc522.MFRC522(5, 19, 21, 25, 7)
+		rdr = mfrc522.MFRC522(5, 19, 21, 25, 7) #gridwars edit to match GPIOs of ESP32 --Michael
 	else:
 		raise RuntimeError("Unsupported platform")
 
@@ -16,7 +17,17 @@ def do_read():
 	print("")
 
 	try:
-		while True:
+		start_time = time.time()
+		timeout = 10
+		while get_reading():
+			if time.time() - start_time >= timeout:
+				stop_read()
+			#print(get_read_bool())
+			#stop_read()
+			#print(get_read_bool())
+			#if stop_reading:
+				#break
+#gridwards edit added to force a stop to the reading of rfid values
 
 			(stat, tag_type) = rdr.request(rdr.REQIDL)
 
