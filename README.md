@@ -51,3 +51,11 @@ Please use the following feedback channels:
 * For a feature request or bug report, create a [GitHub issue](https://github.com/espressif/esp-idf/issues)
 
 We will get back to you as soon as possible.
+
+## Michael's Update 3/28/2025
+
+RUN THE FOLLOWING FIRST IF YOU WANT TO FLASH TO THE ESP32
+
+idf.py add-dependency "abobija/rc522"
+
+NEED THIS DEPENDENCY TO RUN RFID SENSOR
