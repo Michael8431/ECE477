@@ -13,6 +13,40 @@
 #include <string.h>
 #include <stdlib.h>
 
+// IR Matrix includes
+#include "driver/adc.h"
+#include "driver/gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_adc_cal.h"
+
+//UART
+// #include "freertos/FreeRTOS.h"
+// #include "freertos/task.h"
+#include "driver/uart.h"
+// #include "esp_log.h"
+
+
+#define UART_NUM UART_NUM_0  // Use UART1 (like MicroPython)
+// #define UART_NUM UART_NUM_0  // Use UART0 (like devboard USBC), 
+//                                 uncomment set pins also
+#define TX_PIN 8
+#define RX_PIN 7
+#define BUF_SIZE 1024
+
+// void uart_tx_task(void *arg)
+// {
+//     const char *msg = "Hello from ESP32 via UART!\n";
+
+//     while (1) {
+//         uart_write_bytes(UART_PORT_NUM, msg, strlen(msg));
+//         vTaskDelay(pdMS_TO_TICKS(2000));  // Send every 2 seconds
+//     }
+// }
+
+// TaskHandle_t uartTxTaskHandle = NULL;
+
+
 #define BUTTON_GPIO  4
 #define DEBOUNCE_TIME_MS  100
 
@@ -37,6 +71,20 @@ volatile state_t current_state = RST;
 volatile bool pc_is_ready = false;
 
 volatile uint8_t rfid_packet[9];
+
+volatile bool ir_matrix[6][8] = {{false, false, false, false, false, false, false, false},
+{false, false, false, false, false, false, false, false},
+{false, false, false, false, false, false, false, false},
+{false, false, false, false, false, false, false, false},
+{false, false, false, false, false, false, false, false},
+{false, false, false, false, false, false, false, false}
+};
+
+// Array is 48 bytes
+// Packet Header is 1 byte
+// Current State is int(4 bytes)
+
+volatile uint8_t ir_packet[53];
 
 
 static rc522_spi_config_t driver_config = {
@@ -91,7 +139,7 @@ void create_rfid_packet(const rc522_picc_t *picc) {
 
 
 void send_rfid_packet() {
-    printf("\nPretend This sends the packet for now\n");
+    uart_write_bytes(UART_NUM, (const char *)rfid_packet, sizeof(rfid_packet));
 }
 
 static void on_picc_state_changed(void *arg, esp_event_base_t base, int32_t event_id, void *data)
@@ -100,10 +148,8 @@ static void on_picc_state_changed(void *arg, esp_event_base_t base, int32_t even
     rc522_picc_t *picc = event->picc;
 
     if (picc->state == RC522_PICC_STATE_ACTIVE) {
-        // rc522_picc_print(picc);
         (create_rfid_packet(picc));
         send_rfid_packet();
-        // implement above later
     }
     else if (picc->state == RC522_PICC_STATE_IDLE && event->old_state >= RC522_PICC_STATE_ACTIVE) {
         ESP_LOGI(TAG, "Card has been removed");
@@ -126,6 +172,7 @@ void next_state() { //Logic for switching states via button press
             // Not a button toggled state, see other switch case below
             // pc_is_ready = true; //TEMPORARY PERMISSION OVERRIDE FOR TESTING
             rc522_register_events(scanner, RC522_EVENT_PICC_STATE_CHANGED, on_picc_state_changed, NULL);
+            // xTaskCreate(uart_tx_task, "uart_tx_task", 2048, NULL, 10, &uartTxTaskHandle); //To start the task
             set_state(ACTIVE_PLACE);
             break;
         case ACTIVE_PLACE:
@@ -184,10 +231,195 @@ static void IRAM_ATTR gpio_isr_handler(void* arg) {
 }
 
 
+    // Notes from Journal about GPIOS
+    // The Pins for ESP32 are:
+    // reading input voltage of ir sensors:
+    // left to right 1-8
+    // GPIO32 - GPIO 39
+    // outputting enable signals for each camp
+    // left to right, top to bottom 1-6
+    // GPIO12 - GPIO15, GPIO26 & GPIO27
+
+    // Documentation Notes
+    // ADC1 channel 0 is GPIO36
+    // ADC1 channel 1 is GPIO37
+    // ADC1 channel 2 is GPIO38
+    // ADC1 channel 3 is GPIO39
+    // ADC1 channel 4 is GPIO32
+    // ADC1 channel 5 is GPIO33
+    // ADC1 channel 6 is GPIO34
+    // ADC1 channel 7 is GPIO35
+
+    // ADC2 channel 5 is GPIO12
+    // ADC2 channel 4 is GPIO13
+    // ADC2 channel 6 is GPIO14
+    // ADC2 channel 3 is GPIO15
+    // ADC2 channel 9 is GPIO26
+    // ADC2 channel 7 is GPIO27
+
+void config_gpio_output(gpio_num_t num) {
+    //gpio_num setup
+    gpio_config_t gpio_config_out = {};
+    gpio_config_out.intr_type = GPIO_INTR_DISABLE;
+    gpio_config_out.mode = GPIO_MODE_OUTPUT; 
+    gpio_config_out.pin_bit_mask = (1ULL<<num); //GPIO 12
+    gpio_config_out.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    gpio_config_out.pull_up_en = GPIO_PULLUP_DISABLE;
+    esp_err_t gpio_err = gpio_config(&gpio_config_out);
+    assert(gpio_err == ESP_OK);
+    // Make sure it is set to off by default
+    gpio_set_level(num, 0);
+}
+
+#define ADC_CHANNEL_GPIO_32 ADC1_CHANNEL_4
+#define ADC_CHANNEL_GPIO_33 ADC1_CHANNEL_5
+#define ADC_CHANNEL_GPIO_34 ADC1_CHANNEL_6
+#define ADC_CHANNEL_GPIO_35 ADC1_CHANNEL_7
+#define ADC_CHANNEL_GPIO_36 ADC1_CHANNEL_0
+#define ADC_CHANNEL_GPIO_37 ADC1_CHANNEL_1
+#define ADC_CHANNEL_GPIO_38 ADC1_CHANNEL_2
+#define ADC_CHANNEL_GPIO_39 ADC1_CHANNEL_3
+// 0-7 is of type adc1_channel_t
+
+esp_adc_cal_characteristics_t adc_chars;
+
+void config_adc_pin(adc1_channel_t channel) {
+    adc1_config_width(ADC_WIDTH_BIT_12);  // 0 - 4095
+    adc1_config_channel_atten(channel, ADC_ATTEN_DB_11); // for 0-3.3V
+
+    esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 1100, &adc_chars);
+}
+
+
+
+// IR Sensor For the Card Matrix
+void ir_reading() { // assume all pins are already configured
+    // Failsafe to make sure nothing changes during boot
+    vTaskDelay(pdMS_TO_TICKS(100)); // Wait for boot to complete
+
+
+    // Set GPIO_output to high with below command
+    // gpio_set_level(GPIO_NUM_12, 1); // Set GPIO12 to HIGH
+    // Example reading at gpio32
+    adc1_channel_t channels[8] = {
+        ADC_CHANNEL_GPIO_32,
+        ADC_CHANNEL_GPIO_33,
+        ADC_CHANNEL_GPIO_34,
+        ADC_CHANNEL_GPIO_35,
+        ADC_CHANNEL_GPIO_36,
+        ADC_CHANNEL_GPIO_37,
+        ADC_CHANNEL_GPIO_38,
+        ADC_CHANNEL_GPIO_39
+    };
+
+    gpio_num_t enables[6] = {
+        GPIO_NUM_12,
+        GPIO_NUM_13,
+        GPIO_NUM_14,
+        GPIO_NUM_15,
+        GPIO_NUM_26,
+        GPIO_NUM_27
+    };
+    bool was_change = false;
+
+    for(int i = 0; i < 6; i++) { // for each Enable pin/gate volage
+        // send an enable
+        gpio_set_level(enables[i], 1);
+        vTaskDelay(100 / portTICK_PERIOD_MS); // 100 millisecond delay, we will live
+        //  ^^might be unnecessary
+        for(int j = 0; i < 8; j++) { // for each ir sensor using that enable pin
+            int raw = adc1_get_raw(channels[j]);
+            int voltage = esp_adc_cal_raw_to_voltage(raw, &adc_chars); //mV value
+            float cur_voltage = ((float)voltage / 1000); //Now it be in volts
+            // now we can check the voltage to see if it is covered
+            if(cur_voltage >= 2.0) { // If it is read as covered
+                ir_matrix[i][j] = true; // Update value as covered
+                was_change = true;
+            }
+        }
+        // shut it back off
+        gpio_set_level(enables[i], 0);
+    }
+    // might need gpio_reset_pin(pin) depending on the uhh strapping pins
+    if(was_change) {
+        // Create IR packet
+        // Send IR packet
+    }
+}
+
+
+
+
+
+
 void app_main()
 {
+    ESP_LOGI("HELLO", "THE MICRO IS ON");
+    ESP_LOGW("HELLO", "THE MICRO IS ON");
     //IS THIS SAFE???
     //vTaskSuspendAll();
+
+    uart_config_t uart_config = {
+        .baud_rate = 115200,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+    };
+    
+    
+    // Apply UART settings
+    ESP_ERROR_CHECK(uart_param_config(UART_NUM, &uart_config));
+    
+    //This uses the pins on the DevBoard.
+    ESP_ERROR_CHECK(uart_set_pin(UART_NUM, TX_PIN, RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+    
+    // Install UART driver
+    ESP_ERROR_CHECK(uart_driver_install(UART_NUM, BUF_SIZE, BUF_SIZE, 0, NULL, 0));
+
+
+    // Notes from Journal about GPIOS
+    // The Pins for ESP32 are:
+    // reading input voltage of ir sensors:
+    // left to right 1-8
+    // GPIO32 - GPIO 39
+    // outputting enable signals for each camp
+    // left to right, top to bottom 1-6
+    // GPIO12 - GPIO15, GPIO26 & GPIO27
+
+    // Documentation Notes
+    // ADC1 channel 0 is GPIO36
+    // ADC1 channel 1 is GPIO37
+    // ADC1 channel 2 is GPIO38
+    // ADC1 channel 3 is GPIO39
+    // ADC1 channel 4 is GPIO32
+    // ADC1 channel 5 is GPIO33
+    // ADC1 channel 6 is GPIO34
+    // ADC1 channel 7 is GPIO35
+
+    // ADC2 channel 5 is GPIO12
+    // ADC2 channel 4 is GPIO13
+    // ADC2 channel 6 is GPIO14
+    // ADC2 channel 3 is GPIO15
+    // ADC2 channel 9 is GPIO26
+    // ADC2 channel 7 is GPIO27
+    //config these only once, setting is done during the loop
+    // config_gpio_output(GPIO_NUM_12);
+    // config_gpio_output(GPIO_NUM_13);
+    // config_gpio_output(GPIO_NUM_14);
+    // config_gpio_output(GPIO_NUM_15);
+    // config_gpio_output(GPIO_NUM_26);
+    // config_gpio_output(GPIO_NUM_27);
+    // // gpio_set_level(GPIO_NUM_X, 1); this turns it on
+    // //config adc pins
+    // config_adc_pin(ADC_CHANNEL_GPIO_32);
+    // config_adc_pin(ADC_CHANNEL_GPIO_33);
+    // config_adc_pin(ADC_CHANNEL_GPIO_34);
+    // config_adc_pin(ADC_CHANNEL_GPIO_35);
+    // config_adc_pin(ADC_CHANNEL_GPIO_36);
+    // config_adc_pin(ADC_CHANNEL_GPIO_37);
+    // config_adc_pin(ADC_CHANNEL_GPIO_38);
+    // config_adc_pin(ADC_CHANNEL_GPIO_39);
 
     // Create the RFID tag instantiation
     rc522_spi_create(&driver_config, &driver);
@@ -208,6 +440,11 @@ void app_main()
         .mode = GPIO_MODE_INPUT,
         .pull_up_en = GPIO_PULLUP_ENABLE,  // Enable internal pull-up resistor
         .intr_type = GPIO_INTR_NEGEDGE  // Falling edge interrupt
+        // .pin_bit_mask = (1ULL << BUTTON_GPIO),
+        // .mode = GPIO_MODE_INPUT,
+        // .pull_up_en = GPIO_PULLUP_DISABLE,  // Enable internal pull-up resistor
+        // .pull_down_en = GPIO_PULLDOWN_ENABLE,
+        // .intr_type = GPIO_INTR_NEGEDGE  // Falling edge interrupt
     };
     gpio_config(&io_conf);
 
@@ -226,6 +463,7 @@ void app_main()
     // int p1_role = -1;
     // int p2_role = -1;
     volatile bool loop = true;
+    
     while(loop) {
         switch (current_state) { //State machine Logic now that switching is handled
             case RST:
@@ -239,9 +477,9 @@ void app_main()
                 // either info received from PC or it decided itself
 
                 // waiting for permission to leave from PC
-                if(pc_is_ready) {
-                    set_state(ACTIVE_PLACE);
-                }
+                // if(pc_is_ready) {
+                //     set_state(ACTIVE_PLACE);
+                // }
                 break;
             case ACTIVE_PLACE:
                 //RFID sensor is on for this entire state
@@ -251,6 +489,7 @@ void app_main()
                 break;
             case PASSIVE_DEFENSE:
                 loop = false; // temporary break out to avoid
+                ESP_ERROR_CHECK(uart_driver_delete(UART_NUM));
                 break;
         }
         // built-in delay of 100ms
@@ -258,9 +497,11 @@ void app_main()
         // might not be necessary but afraid to disable the scheduler
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
+    // if (uartTxTaskHandle != NULL) {
+    //     vTaskDelete(uartTxTaskHandle);
+    //     uartTxTaskHandle = NULL;
+    // }
     // rc522_start(scanner);
     // rc522_stop(scanner);
-
-
-
+    
 }
