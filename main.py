@@ -97,42 +97,42 @@ class CardClass():
         self.mana = CardStats[ID]["mana"] # Card Cost to Play
         self.tapped = CardStats[ID]["tapped"] # Card Tapped State (0:untapped, 1:tapped)
 
-uid_Mechazawa_1 = 0
-uid_Mechazawa_2 = 1
-uid_Crungus_1 = 2
-uid_Crungus_2 = 3
-uid_Exodia_1 = 4
-uid_Exodia_2 = 5
-uid_Shabeel_1 = 6
-uid_Shabeel_2 = 7
-uid_Powerplex_1 = 8
-uid_Powerplex_2 = 9
-uid_The_Pig_1 = 10
-uid_The_Pig_2 = 11
-uid_Gurren_Lagann_1 = 12
-uid_Gurren_Lagann_2 = 13
-uid_The_Impractical_Jokers_1 = 14
-uid_The_Impractical_Jokers_2 = 15
-uid_Magikarp_1 = 16
-uid_Magikarp_2 = 17
-uid_Moto_Mechazawa_1 = 18
-uid_Moto_Mechazawa_2 = 19
-uid_Mini_Mechazawa_1 = 20
-uid_Mini_Mechazawa_2 = 21
-uid_Batman_1 = 22
-uid_Batman_2 = 23
-uid_Bubble_Buddy_1 = 24
-uid_Bubble_Buddy_2 = 25
-uid_Dirty_Bubble_1 = 26
-uid_Dirty_Bubble_2 = 27
-uid_Beast_Titan_1 = 28
-uid_Beast_Titan_2 = 29
-uid_Consort_Radahn_1 = 30
-uid_Consort_Radahn_2 = 31
-uid_Godfrey_1 = 32
-uid_Godfrey_2 = 33
-uid_Schnitzel_1 = 34
-uid_Schnitzel_2 = 35
+uid_Mechazawa_1 = 31223868
+uid_Mechazawa_2 = 567963708
+uid_Crungus_1 = 567832636
+uid_Crungus_2 = 30830652
+uid_Exodia_1 = 2707829293
+uid_Exodia_2 = 835874876
+uid_Shabeel_1 = 836137020
+uid_Shabeel_2 = 4056772668
+uid_Powerplex_1 = 298610748
+uid_Powerplex_2 = 835350588
+uid_The_Pig_1 = 835612732
+uid_The_Pig_2 = 298217532
+uid_Gurren_Lagann_1 = 834957372
+uid_Gurren_Lagann_2 = 1103261756
+uid_The_Impractical_Jokers_1 = 2976133677
+uid_The_Impractical_Jokers_2 = 834564156
+uid_Magikarp_1 = 1371303996
+uid_Magikarp_2 = 1639608380
+uid_Moto_Mechazawa_1 = 1908305980
+uid_Moto_Mechazawa_2 = 1370910780
+uid_Mini_Mechazawa_1 = 2176086076
+uid_Mini_Mechazawa_2 = 2444390460
+uid_Batman_1 = 2444259388
+uid_Batman_2 = 1370386492
+uid_Bubble_Buddy_1 = 2443997244
+uid_Bubble_Buddy_2 = 3249172540
+uid_Dirty_Bubble_1 = 3517476924
+uid_Dirty_Bubble_2 = 2712039484
+uid_Beast_Titan_1 = 2980343868
+uid_Beast_Titan_2 = 27160636
+uid_Consort_Radahn_1 = 2443210812
+uid_Consort_Radahn_2 = 1369075772
+uid_Godfrey_1 = 295202876
+uid_Godfrey_2 = 1368813628
+uid_Shnitzel_1 = 1368682556
+uid_Shnitzel_2 = 294809660
 
 
 # Lookup Table for Card Stats
@@ -171,8 +171,8 @@ CardStats = {
     uid_Consort_Radahn_2:         {"name": "Consort Radahn", "health": 8, "power": 13, "sleep": 1, "mana": 5, "tapped": 0}, 
     uid_Godfrey_1:                {"name": "Godfrey", "health": 10, "power": 5, "sleep": 1, "mana": 4, "tapped": 0}, 
     uid_Godfrey_2:                {"name": "Godfrey", "health": 10, "power": 5, "sleep": 1, "mana": 4, "tapped": 0}, 
-    uid_Schnitzel_1:              {"name": "Schnitzel", "health": 7, "power": 2, "sleep": 1, "mana": 3, "tapped": 0},
-    uid_Schnitzel_2:              {"name": "Schnitzel", "health": 7, "power": 2, "sleep": 1, "mana": 3, "tapped": 0}
+    uid_Shnitzel_1:              {"name": "Shnitzel", "health": 7, "power": 2, "sleep": 1, "mana": 3, "tapped": 0},
+    uid_Shnitzel_2:              {"name": "Shnitzel", "health": 7, "power": 2, "sleep": 1, "mana": 3, "tapped": 0}
     # Keep adding more if needed
 }
 
@@ -239,42 +239,42 @@ CardStats = {
 
 
 path_to_cards = {
-    uid_Mechazawa_1: "CardArt/Mechazawa.jpg",
-    uid_Mechazawa_2: "CardArt/Mechazawa.jpg",
-    uid_Crungus_1: "CardArt/Crungus.jpg",
-    uid_Crungus_2: "CardArt/Crungus.jpg",
+    uid_Mechazawa_1: "CardArt/Mechazawa.png",
+    uid_Mechazawa_2: "CardArt/Mechazawa.png",
+    uid_Crungus_1: "CardArt/Crungus.png",
+    uid_Crungus_2: "CardArt/Crungus.png",
     uid_Exodia_1: "CardArt/Exodia.jpg",
     uid_Exodia_2: "CardArt/Exodia.jpg",
-    uid_Shabeel_1: "CardArt/Shabeel.jpg",
-    uid_Shabeel_2: "CardArt/Shabeel.jpg",
-    uid_Powerplex_1: "CardArt/Powerplex.jpg",
-    uid_Powerplex_2: "CardArt/Powerplex.jpg",
-    uid_The_Pig_1: "CardArt/The_Pig.jpg",
-    uid_The_Pig_2: "CardArt/The_Pig.jpg",
+    uid_Shabeel_1: "CardArt/Shabeel.png",
+    uid_Shabeel_2: "CardArt/Shabeel.png",
+    uid_Powerplex_1: "CardArt/Powerplex.png",
+    uid_Powerplex_2: "CardArt/Powerplex.png",
+    uid_The_Pig_1: "CardArt/The_Pig.png",
+    uid_The_Pig_2: "CardArt/The_Pig.png",
     uid_Gurren_Lagann_1: "CardArt/Gurren_Lagann.jpg",
     uid_Gurren_Lagann_2: "CardArt/Gurren_Lagann.jpg",
-    uid_The_Impractical_Jokers_1: "CardArt/The_Impractical_Jokers.jpg",
-    uid_The_Impractical_Jokers_2: "CardArt/The_Impractical_Jokers.jpg",
-    uid_Magikarp_1: "CardArt/Magikarp.jpg",
-    uid_Magikarp_2: "CardArt/Magikarp.jpg",
-    uid_Moto_Mechazawa_1: "CardArt/Moto_Mechazawa.jpg",
-    uid_Moto_Mechazawa_2: "CardArt/Moto_Mechazawa.jpg",
+    uid_The_Impractical_Jokers_1: "CardArt/The_Impractical_Jokers.png",
+    uid_The_Impractical_Jokers_2: "CardArt/The_Impractical_Jokers.png",
+    uid_Magikarp_1: "CardArt/Magikarp.png",
+    uid_Magikarp_2: "CardArt/Magikarp.png",
+    uid_Moto_Mechazawa_1: "CardArt/Moto_Mechazawa.png",
+    uid_Moto_Mechazawa_2: "CardArt/Moto_Mechazawa.png",
     uid_Mini_Mechazawa_1: "CardArt/Mini_Mechazawa.jpg",
     uid_Mini_Mechazawa_2: "CardArt/Mini_Mechazawa.jpg",
-    uid_Batman_1: "CardArt/Batman.jpg",
-    uid_Batman_2: "CardArt/Batman.jpg",
+    uid_Batman_1: "CardArt/Batman.png",
+    uid_Batman_2: "CardArt/Batman.png",
     uid_Bubble_Buddy_1: "CardArt/Bubble_Buddy.jpg",
     uid_Bubble_Buddy_2: "CardArt/Bubble_Buddy.jpg",
-    uid_Dirty_Bubble_1: "CardArt/Dirty_Bubble.jpg",
-    uid_Dirty_Bubble_2: "CardArt/Dirty_Bubble.jpg",
+    uid_Dirty_Bubble_1: "CardArt/Dirty_Bubble.png",
+    uid_Dirty_Bubble_2: "CardArt/Dirty_Bubble.png",
     uid_Beast_Titan_1: "CardArt/Beast_Titan.jpg",
     uid_Beast_Titan_2: "CardArt/Beast_Titan.jpg",
     uid_Consort_Radahn_1: "CardArt/Consort_Radahn.jpg",
     uid_Consort_Radahn_2: "CardArt/Consort_Radahn.jpg",
     uid_Godfrey_1: "CardArt/Godfrey.jpg",
     uid_Godfrey_2: "CardArt/Godfrey.jpg",
-    uid_Schnitzel_1: "CardArt/Schnitzel.jpg",
-    uid_Schnitzel_2: "CardArt/Schnitzel.jpg"
+    uid_Shnitzel_1: "CardArt/Shnitzel.jpg",
+    uid_Shnitzel_2: "CardArt/Shnitzel.jpg"
 }
 
 
@@ -324,15 +324,20 @@ def main():
         
         # this_card2 = Card(screen, 'joker_card.jpg', 0, (1,2))
         # this_card2.place_card()
+        
+
         if(has_changed):
             jokers = []
+            print(CardStats[uid])
             for row_i in range(4):
                 row = []
                 for col_i in range(6):
-                    this_card = Card(screen, 'CardArt/joker_card.jpg', 0, (row_i+1,col_i+1))
+                    # this_card = Card(screen, 'CardArt/joker_card.jpg', 0, (row_i+1,col_i+1))
+                    this_card = Card(screen, path_to_cards[uid], 0, (row_i+1,col_i+1))
                     this_card.place_card()
                     row.append(this_card)
                 jokers.append(row)
+
 
         # flip() the display to put your work on screen
         pygame.display.flip()
