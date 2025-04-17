@@ -215,7 +215,7 @@ void pressed_callback(void *arg) {
         is_pressed = true;  // Set flag (or call another function)
         state_t temp = current_state;
         next_state(); //Increments to state after
-        ESP_LOGI("BUTTON", "Button Pressed!");
+        // ESP_LOGI("BUTTON", "Button Pressed!");
         printf("State Changed from %s to %s\n", state_to_string(temp), 
         state_to_string(current_state));
         //Later implementation
@@ -489,7 +489,7 @@ void app_main()
                 break;
             case PASSIVE_DEFENSE:
                 loop = false; // temporary break out to avoid
-                ESP_ERROR_CHECK(uart_driver_delete(UART_NUM));
+                // ESP_ERROR_CHECK(uart_driver_delete(UART_NUM));
                 break;
         }
         // built-in delay of 100ms
