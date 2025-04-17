@@ -1,5 +1,6 @@
 
 import pygame
+from uids import *
 
 #Sources Used: 
 # https://stackoverflow.com/questions/13851051/how-to-use-sprite-groups-in-pygame
@@ -12,6 +13,7 @@ class Card(pygame.sprite.Sprite): #Subclass of pygame.Sprite
     screen_y = 720
     card_width = 100
     card_length = 150
+    
     def set_coords(self, slot):
         # row_pad = (self.card_width / 10)
         # divider = 70
@@ -64,12 +66,24 @@ class Card(pygame.sprite.Sprite): #Subclass of pygame.Sprite
             y=1-6 for each slot
         '''
         pygame.sprite.Sprite.__init__(self)
+        self.uid = id
+        if not CardStats[id]:
+            raise ValueError(f"Card uid={id} does not exist!!!")
+        else:
+            self.name = CardStats[id]["name"]
+            self.health = CardStats[id]["health"]
+            self.power = CardStats[id]["power"]
+            self.sleep = CardStats[id]["sleep"]
+            self.mana = CardStats[id]["mana"]
+            self.tapped = CardStats[id]["tapped"]
         #rest of class stuff goes here
         self.screen = screen
         self.set_coords(slot)
         self.image = pygame.image.load(image_filename).convert() #adds image from file
         self.image = pygame.transform.scale(self.image, (self.card_width, self.card_length)) #Scales image to constant size
+        if slot[0] == 2 or slot[0] == 1:
+            self.image = pygame.transform.flip(self.image, True, True)
         self.rect = pygame.Rect(self.coords[0], self.coords[1], self.card_width, self.card_length)
     def place_card(self):
         self.screen.blit(self.image, tuple(self.coords),)
-        
+

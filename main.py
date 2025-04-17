@@ -8,14 +8,20 @@ import pygame
 import serial
 import threading
 import time
+import random
+from uids import *
 
 #Sources Used: 
 # https://www.pygame.org/docs/
 
 
-
-
 has_changed = False
+new_card = False
+was_placed = False
+
+changed_group = -1
+changed_sensor = -1
+
 
 current_state = 0
 uid = 0
@@ -26,33 +32,150 @@ ir_matrix = [[False, False, False, False, False, False, False, False],
              [False, False, False, False, False, False, False, False],
              [False, False, False, False, False, False, False, False]]
 
+def verify_state_change(cur, new):
+    if cur == 'ERROR' or new == 'ERROR':
+        print("State Change involved an ERROR")
+        return -1
+    elif cur == 'RST' and new != 'IDLE':
+        print("State Change from RST to not IDLE")
+        return -1
+    elif cur == 'IDLE' and new != 'ACTIVEPLACE':
+        print("State Change from IDLE to not ACTIVEPLACE")
+        return -1
+    elif cur == 'ACTIVEPLACE' and new != 'ACTIVEROLE':
+        print("State Change from ACTIVEPLACE to not ACTIVEROLE")
+        return -1
+    elif cur == 'ACTIVEROLE' and new != 'PASSIVEPLACE':
+        print("State Change from ACTIVEROLE to not PASSIVEPLACE")
+        return -1
+    elif cur == 'PASSIVEPLACE' and new != 'IDLE':
+        print("State Change from PASSIVEPLACE to not IDLE")
+        return -1
+    else:
+        return 1
+    
+
+def convert_ir_matrix_to_coords(group:int, sensor:int): #Untested
+    if group == 0 and sensor == 0:
+        return (3,1)
+    elif group == 0 and sensor == 2:
+        return (3,2)
+    elif group == 0 and sensor == 4:
+        return (4,1)
+    elif group == 0 and sensor == 6:
+        return (4,2)
+    
+    if group == 1 and sensor == 0:
+        return (3,3)
+    elif group == 1 and sensor == 2:
+        return (3,4)
+    elif group == 1 and sensor == 4:
+        return (4,3)
+    elif group == 1 and sensor == 6:
+        return (4,4)
+    
+    if group == 2 and sensor == 0:
+        return (3,5)
+    elif group == 2 and sensor == 2:
+        return (3,6)
+    elif group == 2 and sensor == 4:
+        return (4,5)
+    elif group == 2 and sensor == 6:
+        return (4,6)
+
+    if group == 3 and sensor == 0:
+        return (1,5)
+    elif group == 3 and sensor == 2:
+        return (1,6)
+    elif group == 3 and sensor == 4:
+        return (2,5)
+    elif group == 3 and sensor == 6:
+        return (2,6)
+
+    if group == 4 and sensor == 0:
+        return (1,3)
+    elif group == 4 and sensor == 2:
+        return (1,4)
+    elif group == 4 and sensor == 4:
+        return (2,3)
+    elif group == 4 and sensor == 6:
+        return (2,4)
+
+    if group == 5 and sensor == 0:
+        return (1,1)
+    elif group == 5 and sensor == 2:
+        return (1,2)
+    elif group == 5 and sensor == 4:
+        return (2,1)
+    elif group == 5 and sensor == 6:
+        return (2,2)
+
+
 def read_from_port(ser):
     global current_state
     global uid
+    global ir_matrix
     global has_changed
-    print("THIS RAN")
+    global new_card
+    global was_placed
+    global changed_group
+    global changed_sensor
     while True:
         if ser.in_waiting:
             data = ser.readline()
             if data:
-                if data[0] == 1: #Meaning it is a RFID header
-                    packet = data.hex()
-                    header_value = "RFID Packet" if int(packet[0:2], 16) == 1 else "IR Packet"
-                    current_state = returnState(packet[2:4])
+                packet = data.hex()
+                if int(packet[0:2], 16) == 0:
+                    header_value = "Game State"
+                if int(packet[0:2], 16) == 1:
+                    header_value = "RFID Packet"
+                elif int(packet[0:2], 16) == 2:
+                    header_value = "IR Packet"
+                else:
+                    header_value = "ERROR"
+                    raise ValueError("Invalid Header Value for newest packet")
+
+                if header_value == "Game State": #Game State Packet without RFID
+                    #Next 4 bytes are current_game, I only care about 1st byte
+                    new_state = returnState(packet[2:4])
+                    if verify_state_change(current_state, new_state) == 1:
+                        current_state = new_state
+                    
+                elif header_value == "RFID Packet": 
+                    new_state = returnState(packet[2:4])
+                    if verify_state_change(current_state, new_state) == 1:
+                        current_state = new_state
                     uid_hex_string = packet[10:18]
                     uid = int(uid_hex_string, 16)
+                    if int(uid_hex_string, 16) not in uids_list:
+                        print("Failed to find card, no uid stored")
+                        uid = 0
+                    else:
+                        uid = int(uid_hex_string, 16)
                     print(f"header value = {header_value}")
                     print(f"current state = {current_state}")
                     print(f"uid = {uid}")
-                    has_changed = True
-
-
-# CODE TO RECEIEVE SOMETHING FROM THE RASPBERRY PI
-
-
-
-
-
+                    new_card = True
+                    
+                elif header_value == "IR Packet":
+                    new_state = returnState(packet[2:4])
+                    if verify_state_change(current_state, new_state) == 1:
+                        current_state = new_state
+                    # NEXT 48 BYTES are the IR Matrix data
+                    # Could potentially alter this to send some kind of change data
+                    #   instead of the entire thing
+                    # 48 bytes as a hexstring is 96 characters
+                    num_iter = 0
+                    for i in range(0, 96, 2):
+                        num_iter += 1
+                        sensor = (num_iter % 8) # 0-7
+                        group = (num_iter % 6) # 0-5
+                        new_value = bool(int(packet[i:i+2], 16) == 1)
+                        if ir_matrix[group][sensor] != new_value:
+                            has_changed = True
+                            changed_sensor = sensor
+                            changed_group = group
+                            ir_matrix[group][sensor] = new_value
 
 
 def returnState(hexstring):
@@ -70,22 +193,23 @@ def returnState(hexstring):
         return 'ERROR'
 
 
-
-
 # while True:
 #     time.sleep(1)
 #     continue
+
 
 # Defining Player Class
 class PlayerClass():
     def __init__(self, playerNum, health, buttonPressed):
         self.playerNum = playerNum # Personal Player Number
         self.health = health # Total Player Health Points
-        self.buttonPressed = buttonPressed # Has Player Pressed Button (0:no or 1:yes)
-
+        # self.buttonPressed = buttonPressed # Has Player Pressed Button (0:no or 1:yes)
+        self.TheirTurn = -1 # Undecided yet so -1, 1 is Their Turn and 2 is other player's turn
     # Function for Player Damage
     def takeDamage(self, damage):
         self.health -= damage
+    
+
 
 # Defining Card Class
 class CardClass():
@@ -97,85 +221,6 @@ class CardClass():
         self.mana = CardStats[ID]["mana"] # Card Cost to Play
         self.tapped = CardStats[ID]["tapped"] # Card Tapped State (0:untapped, 1:tapped)
 
-uid_Mechazawa_1 = 31223868
-uid_Mechazawa_2 = 567963708
-uid_Crungus_1 = 567832636
-uid_Crungus_2 = 30830652
-uid_Exodia_1 = 2707829293
-uid_Exodia_2 = 835874876
-uid_Shabeel_1 = 836137020
-uid_Shabeel_2 = 4056772668
-uid_Powerplex_1 = 298610748
-uid_Powerplex_2 = 835350588
-uid_The_Pig_1 = 835612732
-uid_The_Pig_2 = 298217532
-uid_Gurren_Lagann_1 = 834957372
-uid_Gurren_Lagann_2 = 1103261756
-uid_The_Impractical_Jokers_1 = 2976133677
-uid_The_Impractical_Jokers_2 = 834564156
-uid_Magikarp_1 = 1371303996
-uid_Magikarp_2 = 1639608380
-uid_Moto_Mechazawa_1 = 1908305980
-uid_Moto_Mechazawa_2 = 1370910780
-uid_Mini_Mechazawa_1 = 2176086076
-uid_Mini_Mechazawa_2 = 2444390460
-uid_Batman_1 = 2444259388
-uid_Batman_2 = 1370386492
-uid_Bubble_Buddy_1 = 2443997244
-uid_Bubble_Buddy_2 = 3249172540
-uid_Dirty_Bubble_1 = 3517476924
-uid_Dirty_Bubble_2 = 2712039484
-uid_Beast_Titan_1 = 2980343868
-uid_Beast_Titan_2 = 27160636
-uid_Consort_Radahn_1 = 2443210812
-uid_Consort_Radahn_2 = 1369075772
-uid_Godfrey_1 = 295202876
-uid_Godfrey_2 = 1368813628
-uid_Shnitzel_1 = 1368682556
-uid_Shnitzel_2 = 294809660
-
-
-# Lookup Table for Card Stats
-CardStats = {
-    uid_Mechazawa_1:              {"name": "Mechazawa", "health": 5, "power": 1, "sleep": 1, "mana": 2, "tapped": 0}, 
-    uid_Mechazawa_2:              {"name": "Mechazawa", "health": 5, "power": 1, "sleep": 1, "mana": 2, "tapped": 0}, 
-    uid_Crungus_1:                {"name": "Crungus", "health": 2, "power": 1, "sleep": 1, "mana": 1, "tapped": 0}, 
-    uid_Crungus_2:                {"name": "Crungus", "health": 2, "power": 1, "sleep": 1, "mana": 1, "tapped": 0}, 
-    uid_Exodia_1:                 {"name": "Exodia", "health": 10, "power": 10, "sleep": 1, "mana": 5, "tapped": 0}, 
-    uid_Exodia_2:                 {"name": "Exodia", "health": 10, "power": 10, "sleep": 1, "mana": 5, "tapped": 0}, 
-    uid_Shabeel_1:                {"name": "Shabeel", "health": 4, "power": 4, "sleep": 1, "mana": 3, "tapped": 0}, 
-    uid_Shabeel_2:                {"name": "Shabeel", "health": 4, "power": 4, "sleep": 1, "mana": 3, "tapped": 0}, 
-    uid_Powerplex_1:              {"name": "Powerplex", "health": 3, "power": 2, "sleep": 1, "mana": 2, "tapped": 0},
-    uid_Powerplex_2:              {"name": "Powerplex", "health": 3, "power": 2, "sleep": 1, "mana": 2, "tapped": 0},
-    uid_The_Pig_1:                {"name": "The Pig", "health": 99, "power": 99, "sleep": 0, "mana": 0, "tapped": 0}, 
-    uid_The_Pig_2:                {"name": "The Pig", "health": 99, "power": 99, "sleep": 0, "mana": 0, "tapped": 0}, 
-    uid_Gurren_Lagann_1:          {"name": "Gurren Lagann", "health": 5, "power": 3, "sleep": 1, "mana": 3, "tapped": 0}, 
-    uid_Gurren_Lagann_2:          {"name": "Gurren Lagann", "health": 5, "power": 3, "sleep": 1, "mana": 3, "tapped": 0}, 
-    uid_The_Impractical_Jokers_1: {"name": "The Impractical Jokers", "health": 1, "power": 2, "sleep": 1, "mana": 1, "tapped": 0}, 
-    uid_The_Impractical_Jokers_2: {"name": "The Impractical Jokers", "health": 1, "power": 2, "sleep": 1, "mana": 1, "tapped": 0}, 
-    uid_Magikarp_1:               {"name": "Magikarp", "health": 2, "power": 1, "sleep": 1, "mana": 1, "tapped": 0}, 
-    uid_Magikarp_2:               {"name": "Magikarp", "health": 2, "power": 1, "sleep": 1, "mana": 1, "tapped": 0}, 
-    uid_Moto_Mechazawa_1:         {"name": "Moto-Mechazawa", "health": 2, "power": 5, "sleep": 1, "mana": 3, "tapped": 0},
-    uid_Moto_Mechazawa_2:         {"name": "Moto-Mechazawa", "health": 2, "power": 5, "sleep": 1, "mana": 3, "tapped": 0},
-    uid_Mini_Mechazawa_1:         {"name": "Mini-Mechazawa", "health": 2, "power": 3, "sleep": 1, "mana": 2, "tapped": 0}, 
-    uid_Mini_Mechazawa_2:         {"name": "Mini-Mechazawa", "health": 2, "power": 3, "sleep": 1, "mana": 2, "tapped": 0}, 
-    uid_Batman_1:                 {"name": "Batman", "health": 4, "power": 6, "sleep": 1, "mana": 4, "tapped": 0}, 
-    uid_Batman_2:                 {"name": "Batman", "health": 4, "power": 6, "sleep": 1, "mana": 4, "tapped": 0}, 
-    uid_Bubble_Buddy_1:           {"name": "Bubble Buddy", "health": 1, "power": 4, "sleep": 1, "mana": 2, "tapped": 0}, 
-    uid_Bubble_Buddy_2:           {"name": "Bubble Buddy", "health": 1, "power": 4, "sleep": 1, "mana": 2, "tapped": 0}, 
-    uid_Dirty_Bubble_1:           {"name": "Dirty Bubble", "health": 4, "power": 1, "sleep": 1, "mana": 3, "tapped": 0}, 
-    uid_Dirty_Bubble_2:           {"name": "Dirty Bubble", "health": 4, "power": 1, "sleep": 1, "mana": 3, "tapped": 0}, 
-    uid_Beast_Titan_1:            {"name": "Beast Titan", "health": 12, "power": 8, "sleep": 1, "mana": 6, "tapped": 0},
-    uid_Beast_Titan_2:            {"name": "Beast Titan", "health": 12, "power": 8, "sleep": 1, "mana": 6, "tapped": 0},
-    uid_Consort_Radahn_1:         {"name": "Consort Radahn", "health": 8, "power": 13, "sleep": 1, "mana": 5, "tapped": 0}, 
-    uid_Consort_Radahn_2:         {"name": "Consort Radahn", "health": 8, "power": 13, "sleep": 1, "mana": 5, "tapped": 0}, 
-    uid_Godfrey_1:                {"name": "Godfrey", "health": 10, "power": 5, "sleep": 1, "mana": 4, "tapped": 0}, 
-    uid_Godfrey_2:                {"name": "Godfrey", "health": 10, "power": 5, "sleep": 1, "mana": 4, "tapped": 0}, 
-    uid_Shnitzel_1:              {"name": "Shnitzel", "health": 7, "power": 2, "sleep": 1, "mana": 3, "tapped": 0},
-    uid_Shnitzel_2:              {"name": "Shnitzel", "health": 7, "power": 2, "sleep": 1, "mana": 3, "tapped": 0}
-    # Keep adding more if needed
-}
-
 
 #
 #   Bytestream is 53 bytes long
@@ -186,116 +231,24 @@ CardStats = {
 #
 
 
-# State Machine
-# game_state = ["IDLE", "RST", "PLACEMENT", "ATTACK", "DEFENSE", "GAMEOVER"]
-# current_state = -1
-# activePlayer = 1
-# nextPlayer = 0
-# buttonPressed = 0
-
-# match game_state:
-#     case "IDLE":
-#         print("Idle State!")
-#     case "RST":
-#         print("Reset!")
-#     case "PLACEMENT":
-#         print("Placement!")
-#         if (buttonPressed):
-#             current_state = "ATTACK"
-#     case "ATTACK":
-#         print("Attack!")
-#         if (buttonPressed):
-#             current_state = "DEFENSE"
-#     case "DEFENSE":
-#         print("Defense!")
-#         if (buttonPressed):
-#             # Defense is last phase during turn, so swap active player when button pressed
-#             temp = activePlayer
-#             activePlayer = nextPlayer
-#             nextPlayer = temp
-#             current_state = "PLACEMENT"
-#     case "GAMEOVER":
-#         print("Gameover!")
-# def StateMachine():
-#     packetReceived = 0
-#     data = []
-    
-#     while (True):
-#         # If no packet received, restart
-#         if not packetReceived:
-#             continue 
-        
-#         packetReceived = 0
-#         data = data.append(bytestream)
-#         header = data[0]
-#         # Check packet after continue
-
-#         # If not an RFID type, restart
-#         if (header != 1):
-#             continue
-
-#         ID = data[1:5]
-#         while(True):
-
-
-path_to_cards = {
-    uid_Mechazawa_1: "CardArt/Mechazawa.png",
-    uid_Mechazawa_2: "CardArt/Mechazawa.png",
-    uid_Crungus_1: "CardArt/Crungus.png",
-    uid_Crungus_2: "CardArt/Crungus.png",
-    uid_Exodia_1: "CardArt/Exodia.jpg",
-    uid_Exodia_2: "CardArt/Exodia.jpg",
-    uid_Shabeel_1: "CardArt/Shabeel.png",
-    uid_Shabeel_2: "CardArt/Shabeel.png",
-    uid_Powerplex_1: "CardArt/Powerplex.png",
-    uid_Powerplex_2: "CardArt/Powerplex.png",
-    uid_The_Pig_1: "CardArt/The_Pig.png",
-    uid_The_Pig_2: "CardArt/The_Pig.png",
-    uid_Gurren_Lagann_1: "CardArt/Gurren_Lagann.jpg",
-    uid_Gurren_Lagann_2: "CardArt/Gurren_Lagann.jpg",
-    uid_The_Impractical_Jokers_1: "CardArt/The_Impractical_Jokers.png",
-    uid_The_Impractical_Jokers_2: "CardArt/The_Impractical_Jokers.png",
-    uid_Magikarp_1: "CardArt/Magikarp.png",
-    uid_Magikarp_2: "CardArt/Magikarp.png",
-    uid_Moto_Mechazawa_1: "CardArt/Moto_Mechazawa.png",
-    uid_Moto_Mechazawa_2: "CardArt/Moto_Mechazawa.png",
-    uid_Mini_Mechazawa_1: "CardArt/Mini_Mechazawa.jpg",
-    uid_Mini_Mechazawa_2: "CardArt/Mini_Mechazawa.jpg",
-    uid_Batman_1: "CardArt/Batman.png",
-    uid_Batman_2: "CardArt/Batman.png",
-    uid_Bubble_Buddy_1: "CardArt/Bubble_Buddy.jpg",
-    uid_Bubble_Buddy_2: "CardArt/Bubble_Buddy.jpg",
-    uid_Dirty_Bubble_1: "CardArt/Dirty_Bubble.png",
-    uid_Dirty_Bubble_2: "CardArt/Dirty_Bubble.png",
-    uid_Beast_Titan_1: "CardArt/Beast_Titan.jpg",
-    uid_Beast_Titan_2: "CardArt/Beast_Titan.jpg",
-    uid_Consort_Radahn_1: "CardArt/Consort_Radahn.jpg",
-    uid_Consort_Radahn_2: "CardArt/Consort_Radahn.jpg",
-    uid_Godfrey_1: "CardArt/Godfrey.jpg",
-    uid_Godfrey_2: "CardArt/Godfrey.jpg",
-    uid_Shnitzel_1: "CardArt/Shnitzel.jpg",
-    uid_Shnitzel_2: "CardArt/Shnitzel.jpg"
-}
-
-
-
-
-
 def main():
     global current_state
     global uid
     global has_changed
 
-    ser = serial.Serial(port='COM3', baudrate=115200, timeout=1)
+    current_port = 'COM3' # Change to what your device manager says
+
+    # ser = serial.Serial(port=current_port, baudrate=115200, timeout=1)
+    ser = 0 # Swap with this to run without microcontroller
 
 
     thread = threading.Thread(target=read_from_port, args=(ser,))
     thread.daemon = True
-    thread.start()
+    # thread.start() # Comment this out to run without Micro
 
     states = ['RST', 'IDLE', 'ACTIVEPLACE', 'ACTIVEROLE', 'PASSIVEPLACE']
 
-    print("Listening on COM6...")
+    print(f"Listening on {current_port}...")
 
 
     pygame.init()
@@ -304,6 +257,7 @@ def main():
     clock = pygame.time.Clock()
     running = True
 
+    placed_cards = []
     
     while running:
         # poll for events
@@ -325,18 +279,31 @@ def main():
         # this_card2 = Card(screen, 'joker_card.jpg', 0, (1,2))
         # this_card2.place_card()
         
+        this_card_1 = Card(screen, path_to_cards[uid_Consort_Radahn_1], uid_Consort_Radahn_1, convert_ir_matrix_to_coords(0,0))
+        this_card_1.place_card()
+        this_card_2 = Card(screen, path_to_cards[uid_Godfrey_2], uid_Godfrey_2, convert_ir_matrix_to_coords(5,4))
+        this_card_2.place_card()
+        
+        this_card_3 = Card(screen, path_to_cards[uid_Consort_Radahn_1], uid_Consort_Radahn_1, convert_ir_matrix_to_coords(1,0))
+        this_card_3.place_card()
+        this_card_4 = Card(screen, path_to_cards[uid_Godfrey_2], uid_Godfrey_2, convert_ir_matrix_to_coords(4,4))
+        this_card_4.place_card()
 
-        if(has_changed):
-            jokers = []
-            print(CardStats[uid])
-            for row_i in range(4):
-                row = []
-                for col_i in range(6):
-                    # this_card = Card(screen, 'CardArt/joker_card.jpg', 0, (row_i+1,col_i+1))
-                    this_card = Card(screen, path_to_cards[uid], 0, (row_i+1,col_i+1))
-                    this_card.place_card()
-                    row.append(this_card)
-                jokers.append(row)
+        this_card_5 = Card(screen, path_to_cards[uid_Consort_Radahn_1], uid_Consort_Radahn_1, convert_ir_matrix_to_coords(2,0))
+        this_card_5.place_card()
+        this_card_6 = Card(screen, path_to_cards[uid_Godfrey_2], uid_Godfrey_2, convert_ir_matrix_to_coords(3,4))
+        this_card_6.place_card()
+        # TEMPORARY COMMENT OUT
+        # if(has_changed):
+        #     print(CardStats[uid])
+        #     for row_i in range(4):
+        #         row = []
+        #         for col_i in range(6):
+        #             # this_card = Card(screen, 'CardArt/joker_card.jpg', 0, (row_i+1,col_i+1))
+        #             this_card = Card(screen, path_to_cards[uid], uid, (row_i+1,col_i+1))
+        #             this_card.place_card()
+        #             row.append(this_card)
+        #         placed_cards.append(row)
 
 
         # flip() the display to put your work on screen
