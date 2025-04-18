@@ -22,6 +22,7 @@ was_placed = False
 changed_group = -1
 changed_sensor = -1
 
+num_prev_cycles = 0
 
 current_state = 0
 uid = 0
@@ -187,6 +188,7 @@ def read_from_port(ser):
     global was_placed
     global changed_group
     global changed_sensor
+    global num_prev_cycles
     while True:
         if ser.in_waiting:
             # Erroneous Data, skipping to avoid errors
@@ -200,6 +202,8 @@ def read_from_port(ser):
                     packet = data.hex()
                     header_value = "Game State Packet"
                     new_state = returnState(packet[2:4])
+                    if new_state == "IDLE" and current_state == "PASSIVEPLACE":
+                        num_prev_cycles += 1
                     if verify_state_change(current_state, new_state) == 1:
                         current_state = new_state
                 if data[0] == 1: #Meaning it is a RFID header
@@ -261,7 +265,7 @@ def returnState(hexstring):
 
 # Defining Player Class
 class PlayerClass():
-    def __init__(self, playerNum, health, buttonPressed):
+    def __init__(self, playerNum, health):
         self.playerNum = playerNum # Personal Player Number
         self.health = health # Total Player Health Points
         # self.buttonPressed = buttonPressed # Has Player Pressed Button (0:no or 1:yes)
@@ -291,11 +295,16 @@ class CardClass():
 #   if an RFID packet, next 4 bytes are UID in hex. if an IR packet, next 48 bytes are either 1 or 0 each
 #
 
+isWinner = False # If someone has won the game or not
+winningPlayer = -1 # 1 for P1, 2 for P2
 
 def main():
     global current_state
     global uid
     global has_changed
+    
+    p1 = PlayerClass(1, 100)
+    p2 = PlayerClass(2, 100)
 
     current_port = 'COM6' # Change to what your device manager says
 
@@ -322,6 +331,7 @@ def main():
     placed_cards = []
     
     first_loop = True
+    
     
     while running:
         # poll for events
@@ -379,7 +389,13 @@ def main():
                 else:
                     print("P2 goes first")
                 first_loop = False
-            else: #Swap Whose turn it is
+            else:
+                #check if game winner
+                if num_prev_cycles != 0:
+                    current_state == "BATTLETURN"
+                    num_prev_cycles = 0
+                    continue
+                #Swap Whose turn it is
                 if random_num == 1:
                     random_num = 2
                 else:
@@ -414,16 +430,31 @@ def main():
             # TO DO:
             #   make global to tell code to do the game calculations in IDLE next time.
             #       Only startup time of IDLE doesnt need the calculations
-            current_state == "BATTLETURN"
             pass
         elif current_state == "BATTLETURN":
             # TO DO:
             #   Game Calculations:
             #       Who won
             #       Etc
-            current_state == "DO NOTHING" # Gets code to wait for the micro to change the state
+            
+            # DO DAMAGE CALCULATION HERE
+            #p1.takeDamage(100) is death
+            
+            if p1.health <= 0:
+                isWinner = True
+                winningPlayer = 1
+                current_state = "WINSCREEN"
+            elif p2.health <= 0:
+                isWinner = True
+                winningPlayer = 2
+                current_state = "WINSCREEN"
+            
+            # If nobody won or lost go back to IDLE
+            current_state = "IDLE" # Gets code to wait for the micro to change the state
             pass
-        elif current_state == "DO NOTHING":
+        elif current_state == "WINSCREEN":
+            # TO DO:
+            #   Display some kind of win screen window
             pass
 
         # flip() the display to put your work on screen
