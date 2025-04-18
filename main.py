@@ -111,6 +111,73 @@ def convert_ir_matrix_to_coords(group:int, sensor:int): #Untested
         return (2,2)
 
 
+# def read_from_port(ser):
+#     global current_state
+#     global uid
+#     global ir_matrix
+#     global has_changed
+#     global new_card
+#     global was_placed
+#     global changed_group
+#     global changed_sensor
+#     while True:
+#         if ser.in_waiting:
+#             data = ser.readline()
+#             if data:
+#                 packet = data.hex()
+#                 if data[0] == 0:
+#                     header_value = "Game State"
+#                 if data[0] == 1:
+#                     header_value = "RFID Packet"
+#                 elif data[0] == 2:
+#                     header_value = "IR Packet"
+#                 else:
+#                     header_value = "ERROR"
+#                     print(data[0])
+#                     raise ValueError("Invalid Header Value for newest packet")
+
+#                 if header_value == "Game State": #Game State Packet without RFID
+#                     #Next 4 bytes are current_game, I only care about 1st byte
+#                     new_state = returnState(packet[2:4])
+#                     if verify_state_change(current_state, new_state) == 1:
+#                         current_state = new_state
+                    
+#                 elif header_value == "RFID Packet": 
+#                     new_state = returnState(packet[2:4])
+#                     if verify_state_change(current_state, new_state) == 1:
+#                         current_state = new_state
+#                     uid_hex_string = packet[10:18]
+#                     uid = int(uid_hex_string, 16)
+#                     if int(uid_hex_string, 16) not in uids_list:
+#                         print("Failed to find card, no uid stored")
+#                         uid = 0
+#                     else:
+#                         uid = int(uid_hex_string, 16)
+#                     print(f"header value = {header_value}")
+#                     print(f"current state = {current_state}")
+#                     print(f"uid = {uid}")
+#                     new_card = True
+                    
+#                 elif header_value == "IR Packet":
+#                     new_state = returnState(packet[2:4])
+#                     if verify_state_change(current_state, new_state) == 1:
+#                         current_state = new_state
+#                     # NEXT 48 BYTES are the IR Matrix data
+#                     # Could potentially alter this to send some kind of change data
+#                     #   instead of the entire thing
+#                     # 48 bytes as a hexstring is 96 characters
+#                     num_iter = 0
+#                     for i in range(0, 96, 2):
+#                         num_iter += 1
+#                         sensor = (num_iter % 8) # 0-7
+#                         group = (num_iter % 6) # 0-5
+#                         new_value = bool(int(packet[i:i+2], 16) == 1)
+#                         if ir_matrix[group][sensor] != new_value:
+#                             has_changed = True
+#                             changed_sensor = sensor
+#                             changed_group = group
+#                             ir_matrix[group][sensor] = new_value
+
 def read_from_port(ser):
     global current_state
     global uid
@@ -122,31 +189,29 @@ def read_from_port(ser):
     global changed_sensor
     while True:
         if ser.in_waiting:
+            # Erroneous Data, skipping to avoid errors
             data = ser.readline()
             if data:
-                packet = data.hex()
-                if int(packet[0:2], 16) == 0:
-                    header_value = "Game State"
-                if int(packet[0:2], 16) == 1:
-                    header_value = "RFID Packet"
-                elif int(packet[0:2], 16) == 2:
-                    header_value = "IR Packet"
-                else:
-                    header_value = "ERROR"
-                    raise ValueError("Invalid Header Value for newest packet")
-
-                if header_value == "Game State": #Game State Packet without RFID
-                    #Next 4 bytes are current_game, I only care about 1st byte
+                print(f"data[0] = {data[0]}")
+                # print("EOF")
+                # break
+                if data[0] == 0: #Meaning game state packet
+                    data = data[0:5]
+                    packet = data.hex()
+                    header_value = "Game State Packet"
                     new_state = returnState(packet[2:4])
                     if verify_state_change(current_state, new_state) == 1:
                         current_state = new_state
-                    
-                elif header_value == "RFID Packet": 
+                if data[0] == 1: #Meaning it is a RFID header
+                    data = data[0:9]
+                    packet = data.hex()
+                    print(len(packet))
+                    print((packet))
+                    header_value = "RFID Packet"
                     new_state = returnState(packet[2:4])
                     if verify_state_change(current_state, new_state) == 1:
                         current_state = new_state
                     uid_hex_string = packet[10:18]
-                    uid = int(uid_hex_string, 16)
                     if int(uid_hex_string, 16) not in uids_list:
                         print("Failed to find card, no uid stored")
                         uid = 0
@@ -155,28 +220,24 @@ def read_from_port(ser):
                     print(f"header value = {header_value}")
                     print(f"current state = {current_state}")
                     print(f"uid = {uid}")
-                    new_card = True
-                    
-                elif header_value == "IR Packet":
-                    new_state = returnState(packet[2:4])
-                    if verify_state_change(current_state, new_state) == 1:
-                        current_state = new_state
-                    # NEXT 48 BYTES are the IR Matrix data
-                    # Could potentially alter this to send some kind of change data
-                    #   instead of the entire thing
-                    # 48 bytes as a hexstring is 96 characters
+                if data[0] == 2: #IR Matrix Data Packet
+                    data = data[0:53]
+                    packet = data.hex()
+                    header_value = "IR Data Packet"
                     num_iter = 0
                     for i in range(0, 96, 2):
                         num_iter += 1
                         sensor = (num_iter % 8) # 0-7
                         group = (num_iter % 6) # 0-5
                         new_value = bool(int(packet[i:i+2], 16) == 1)
-                        if ir_matrix[group][sensor] != new_value:
-                            has_changed = True
+                        if ir_matrix[group][sensor] != new_value and new_value == True:
+                            has_changed = True # This is a newly placed card
                             changed_sensor = sensor
                             changed_group = group
                             ir_matrix[group][sensor] = new_value
-
+                        elif ir_matrix[group][sensor] != new_value and new_value == False:
+                            ir_matrix[group][sensor] = new_value # For removing a Card
+                # time.sleep(1)
 
 def returnState(hexstring):
     if hexstring == '00':
@@ -236,9 +297,10 @@ def main():
     global uid
     global has_changed
 
-    current_port = 'COM3' # Change to what your device manager says
+    current_port = 'COM6' # Change to what your device manager says
 
     # ser = serial.Serial(port=current_port, baudrate=115200, timeout=1)
+
     ser = 0 # Swap with this to run without microcontroller
 
 
@@ -258,6 +320,8 @@ def main():
     running = True
 
     placed_cards = []
+    
+    first_loop = True
     
     while running:
         # poll for events
@@ -304,7 +368,63 @@ def main():
         #             this_card.place_card()
         #             row.append(this_card)
         #         placed_cards.append(row)
-
+        if current_state == 0:
+            # Maybe have some kind of start Game with button press window
+            pass
+        elif current_state == "IDLE":
+            if first_loop:
+                random_num = random.randint(1,2)
+                if random_num == 1:
+                    print("P1 goes first")
+                else:
+                    print("P2 goes first")
+                first_loop = False
+            else: #Swap Whose turn it is
+                if random_num == 1:
+                    random_num = 2
+                else:
+                    random_num = 1
+                pass
+        elif current_state == "ACTIVEPLACE":
+            # This PLACES The new card, I need something to keep placing existing cards
+            if(has_changed): # IF For when an IR is covered to place that card
+                # print(CardStats[uid])
+                if uid != 0:
+                    # PLACING THE CARD
+                    this_card = Card(screen, path_to_cards[uid], uid,
+                                    convert_ir_matrix_to_coords(changed_group,changed_sensor))
+                    this_card.place_card()
+                    placed_cards.append(this_card)
+                    uid = 0
+                has_changed = False
+            if(True): #Calculate to see if card died
+                for card in placed_cards:
+                    if card.health <= 0:
+                        # Install Popup window to tell player to remove that card
+                        # Could potentially just do a red X overlapping sprite like Zack said, and wait
+                        #   until the player removes it
+                        pass
+            if(True): #Always Places original cards
+                for c in placed_cards:
+                    c.place_card() #Keep Placing every Frame
+        elif current_state == "ACTIVEROLE":
+            # DO IR reading for the rotation of cards
+            pass
+        elif current_state == "PASSIVEPLACE":
+            # TO DO:
+            #   make global to tell code to do the game calculations in IDLE next time.
+            #       Only startup time of IDLE doesnt need the calculations
+            current_state == "BATTLETURN"
+            pass
+        elif current_state == "BATTLETURN":
+            # TO DO:
+            #   Game Calculations:
+            #       Who won
+            #       Etc
+            current_state == "DO NOTHING" # Gets code to wait for the micro to change the state
+            pass
+        elif current_state == "DO NOTHING":
+            pass
 
         # flip() the display to put your work on screen
         pygame.display.flip()
