@@ -24,7 +24,7 @@ changed_sensor = -1
 
 num_prev_cycles = 0
 
-current_state = 0
+current_state = "IDLE" # DEFAULT STARTING VALUE, NOT SENT ON FIRST ITERATION
 uid = 0
 ir_matrix = [[False, False, False, False, False, False, False, False],
              [False, False, False, False, False, False, False, False],
@@ -197,15 +197,16 @@ def read_from_port(ser):
                 print(f"data[0] = {data[0]}")
                 # print("EOF")
                 # break
-                if data[0] == 0: #Meaning game state packet
+                if data[0] == 3: #Meaning game state packet
                     data = data[0:5]
                     packet = data.hex()
                     header_value = "Game State Packet"
                     new_state = returnState(packet[2:4])
                     if new_state == "IDLE" and current_state == "PASSIVEPLACE":
                         num_prev_cycles += 1
-                    if verify_state_change(current_state, new_state) == 1:
-                        current_state = new_state
+                    # if verify_state_change(current_state, new_state) == 1:
+                    current_state = new_state
+                    print(f"current state is now {current_state}")
                 if data[0] == 1: #Meaning it is a RFID header
                     data = data[0:9]
                     packet = data.hex()
@@ -227,6 +228,7 @@ def read_from_port(ser):
                 if data[0] == 2: #IR Matrix Data Packet
                     data = data[0:53]
                     packet = data.hex()
+                    print("GOT IR PACKET")
                     header_value = "IR Data Packet"
                     num_iter = 0
                     for i in range(0, 96, 2):
@@ -241,6 +243,7 @@ def read_from_port(ser):
                             ir_matrix[group][sensor] = new_value
                         elif ir_matrix[group][sensor] != new_value and new_value == False:
                             ir_matrix[group][sensor] = new_value # For removing a Card
+                    print(ir_matrix)
                 # time.sleep(1)
 
 def returnState(hexstring):
@@ -302,20 +305,21 @@ def main():
     global current_state
     global uid
     global has_changed
+    global num_prev_cycles
     
     p1 = PlayerClass(1, 100)
     p2 = PlayerClass(2, 100)
 
     current_port = 'COM6' # Change to what your device manager says
 
-    # ser = serial.Serial(port=current_port, baudrate=115200, timeout=1)
+    ser = serial.Serial(port=current_port, baudrate=115200, timeout=1)
 
-    ser = 0 # Swap with this to run without microcontroller
+    # ser = 0 # Swap with this to run without microcontroller
 
 
     thread = threading.Thread(target=read_from_port, args=(ser,))
     thread.daemon = True
-    # thread.start() # Comment this out to run without Micro
+    thread.start() # Comment this out to run without Micro
 
     states = ['RST', 'IDLE', 'ACTIVEPLACE', 'ACTIVEROLE', 'PASSIVEPLACE']
 
@@ -392,15 +396,14 @@ def main():
             else:
                 #check if game winner
                 if num_prev_cycles != 0:
-                    current_state == "BATTLETURN"
-                    num_prev_cycles = 0
+                    current_state = "BATTLETURN"
+                    print("BATTLETURN entered")
                     continue
                 #Swap Whose turn it is
                 if random_num == 1:
                     random_num = 2
                 else:
                     random_num = 1
-                pass
         elif current_state == "ACTIVEPLACE":
             # This PLACES The new card, I need something to keep placing existing cards
             if(has_changed): # IF For when an IR is covered to place that card
@@ -451,7 +454,6 @@ def main():
             
             # If nobody won or lost go back to IDLE
             current_state = "IDLE" # Gets code to wait for the micro to change the state
-            pass
         elif current_state == "WINSCREEN":
             # TO DO:
             #   Display some kind of win screen window
