@@ -86,6 +86,8 @@ volatile bool ir_matrix[6][8] = {{false, false, false, false, false, false, fals
 
 volatile uint8_t ir_packet[53];
 
+volatile uint8_t state_packet[5];
+
 
 static rc522_spi_config_t driver_config = {
     .host_id = SPI3_HOST,
@@ -137,9 +139,51 @@ void create_rfid_packet(const rc522_picc_t *picc) {
     printf("\n");
 }
 
+void create_state_packet() {
+    const uint8_t state_packet_header = 0x03;
+    uint8_t *bytePtr = (uint8_t *)&current_state;
+    state_packet[0] = state_packet_header;
+    state_packet[1] = bytePtr[0];
+    state_packet[2] = bytePtr[1];
+    state_packet[3] = bytePtr[2];
+    state_packet[4] = bytePtr[3];
+    printf("\n");
+    printf("New State Packet\n");
+    printf("%d 3=STATE header\n", state_packet[0]);
+    printf("%X %X %X %X(int)Current State\n", (unsigned int)state_packet[1],(unsigned int)state_packet[2],(unsigned int)state_packet[3],(unsigned int)state_packet[4]);
+    printf("\n");
+}
+
+void create_ir_packet() {
+    const uint8_t ir_packet_header = 0x02;
+    uint8_t *bytePtr = (uint8_t *)&current_state;
+    ir_packet[0] = ir_packet_header;
+    ir_packet[1] = bytePtr[0];
+    ir_packet[2] = bytePtr[1];
+    ir_packet[3] = bytePtr[2];
+    ir_packet[4] = bytePtr[3];
+    int cur = 5;
+    for(int i = 0; i < 6; i++) {
+        for(int j = 0; j < 8; j++) {
+            ir_packet[cur] = (uint8_t)ir_matrix[i][j];
+            cur++;
+        }
+    }
+    printf("\n");
+    printf("New IR Packet\n");
+}
+
 
 void send_rfid_packet() {
     uart_write_bytes(UART_NUM, (const char *)rfid_packet, sizeof(rfid_packet));
+}
+
+void send_ir_packet() {
+    uart_write_bytes(UART_NUM, (const char *)ir_packet, sizeof(ir_packet));
+}
+
+void send_state_packet() {
+    uart_write_bytes(UART_NUM, (const char *)state_packet, sizeof(state_packet));
 }
 
 static void on_picc_state_changed(void *arg, esp_event_base_t base, int32_t event_id, void *data)
@@ -181,9 +225,13 @@ void next_state() { //Logic for switching states via button press
             set_state(ACTIVE_ROLE);
             break;
         case ACTIVE_ROLE:
+            rc522_start(scanner);
+            rc522_register_events(scanner, RC522_EVENT_PICC_STATE_CHANGED, on_picc_state_changed, NULL);
             set_state(PASSIVE_DEFENSE);
             break;
         case PASSIVE_DEFENSE:
+            rc522_pause(scanner);
+            rc522_unregister_events(scanner, RC522_EVENT_PICC_STATE_CHANGED, on_picc_state_changed);
             set_state(IDLE);
             break;
     }
@@ -221,6 +269,8 @@ void pressed_callback(void *arg) {
         state_to_string(current_state));
         //Later implementation
         //  Send packet of new state over to PC via UART
+        create_state_packet();
+        send_state_packet();
     }
 }
 
@@ -231,7 +281,6 @@ static void IRAM_ATTR gpio_isr_handler(void* arg) {
     esp_timer_start_once(debounce_timer, DEBOUNCE_TIME_MS * 1000); // Convert ms to microseconds
 }
 
-
     // Notes from Journal about GPIOS
     // The Pins for ESP32 are:
     // reading input voltage of ir sensors:
@@ -240,23 +289,6 @@ static void IRAM_ATTR gpio_isr_handler(void* arg) {
     // outputting enable signals for each camp
     // left to right, top to bottom 1-6
     // GPIO12 - GPIO15, GPIO26 & GPIO27
-
-    // Documentation Notes
-    // ADC1 channel 0 is GPIO36
-    // ADC1 channel 1 is GPIO37
-    // ADC1 channel 2 is GPIO38
-    // ADC1 channel 3 is GPIO39
-    // ADC1 channel 4 is GPIO32
-    // ADC1 channel 5 is GPIO33
-    // ADC1 channel 6 is GPIO34
-    // ADC1 channel 7 is GPIO35
-
-    // ADC2 channel 5 is GPIO12
-    // ADC2 channel 4 is GPIO13
-    // ADC2 channel 6 is GPIO14
-    // ADC2 channel 3 is GPIO15
-    // ADC2 channel 9 is GPIO26
-    // ADC2 channel 7 is GPIO27
 
 void config_gpio_output(gpio_num_t num) {
     //gpio_num setup
@@ -272,14 +304,6 @@ void config_gpio_output(gpio_num_t num) {
     gpio_set_level(num, 0);
 }
 
-#define ADC_CHANNEL_GPIO_32 ADC1_CHANNEL_4
-#define ADC_CHANNEL_GPIO_33 ADC1_CHANNEL_5
-#define ADC_CHANNEL_GPIO_34 ADC1_CHANNEL_6
-#define ADC_CHANNEL_GPIO_35 ADC1_CHANNEL_7
-#define ADC_CHANNEL_GPIO_36 ADC1_CHANNEL_0
-#define ADC_CHANNEL_GPIO_37 ADC1_CHANNEL_1
-#define ADC_CHANNEL_GPIO_38 ADC1_CHANNEL_2
-#define ADC_CHANNEL_GPIO_39 ADC1_CHANNEL_3
 // 0-7 is of type adc1_channel_t
 
 esp_adc_cal_characteristics_t adc_chars;
@@ -303,16 +327,7 @@ void ir_reading() { // assume all pins are already configured
     // gpio_set_level(GPIO_NUM_12, 1); // Set GPIO12 to HIGH
     // Example reading at gpio32
     // ADC1_CHANNEL_4
-    adc1_channel_t channels[8] = {
-        ADC_CHANNEL_GPIO_32,
-        ADC_CHANNEL_GPIO_33,
-        ADC_CHANNEL_GPIO_34,
-        ADC_CHANNEL_GPIO_35,
-        ADC_CHANNEL_GPIO_36,
-        ADC_CHANNEL_GPIO_37,
-        ADC_CHANNEL_GPIO_38,
-        ADC_CHANNEL_GPIO_39
-    };
+
 
     gpio_num_t gpio_channels[8] = {
         GPIO_NUM_32,GPIO_NUM_33,GPIO_NUM_34,GPIO_NUM_35,GPIO_NUM_36,
@@ -333,7 +348,7 @@ void ir_reading() { // assume all pins are already configured
         // send an enable
         gpio_set_level(enables[i], 0);
         //TESTING FOR MEASURING DOES NOT MATTER
-        vTaskDelay(pdMS_TO_TICKS(2000)); // 2 SECOND DELAY
+        vTaskDelay(pdMS_TO_TICKS(100)); // 100ms delay
         //  ^^might be unnecessary, depending on how fast the IR is
         for(int j = 0; j < 8; j++) { // for each ir sensor using that enable pin
             // if channels[j] == ADC2_CHANNEL_7
@@ -356,6 +371,8 @@ void ir_reading() { // assume all pins are already configured
     }
 
     if(was_change) {
+        create_ir_packet();
+        send_ir_packet();
         // Create IR packet
         // Send IR packet
     }
@@ -502,8 +519,6 @@ void app_main()
                 break;
             case PASSIVE_DEFENSE:
                 ir_reading();
-                loop = false; // temporary break out to avoid
-                // ESP_ERROR_CHECK(uart_driver_delete(UART_NUM));
                 break;
         }
         // built-in delay of 100ms
