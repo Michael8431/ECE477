@@ -176,6 +176,7 @@ void next_state() { //Logic for switching states via button press
             set_state(ACTIVE_PLACE);
             break;
         case ACTIVE_PLACE:
+            rc522_pause(scanner);
             rc522_unregister_events(scanner, RC522_EVENT_PICC_STATE_CHANGED, on_picc_state_changed);
             set_state(ACTIVE_ROLE);
             break;
@@ -203,7 +204,7 @@ char* state_to_string(state_t this_state) {
         case ACTIVE_ROLE:
             return "ACTIVE_ROLE";
         case PASSIVE_DEFENSE:
-            return "PASSIVE DEFENSE";
+            return "PASSIVE_DEFENSE";
         default:
             return "UNKNOWN";
     }
@@ -301,6 +302,7 @@ void ir_reading() { // assume all pins are already configured
     // Set GPIO_output to high with below command
     // gpio_set_level(GPIO_NUM_12, 1); // Set GPIO12 to HIGH
     // Example reading at gpio32
+    // ADC1_CHANNEL_4
     adc1_channel_t channels[8] = {
         ADC_CHANNEL_GPIO_32,
         ADC_CHANNEL_GPIO_33,
@@ -310,6 +312,11 @@ void ir_reading() { // assume all pins are already configured
         ADC_CHANNEL_GPIO_37,
         ADC_CHANNEL_GPIO_38,
         ADC_CHANNEL_GPIO_39
+    };
+
+    gpio_num_t gpio_channels[8] = {
+        GPIO_NUM_32,GPIO_NUM_33,GPIO_NUM_34,GPIO_NUM_35,GPIO_NUM_36,
+        GPIO_NUM_37,GPIO_NUM_38,GPIO_NUM_39
     };
 
     gpio_num_t enables[6] = {
@@ -324,27 +331,35 @@ void ir_reading() { // assume all pins are already configured
 
     for(int i = 0; i < 6; i++) { // for each Enable pin/gate volage
         // send an enable
-        gpio_set_level(enables[i], 1);
-        vTaskDelay(100 / portTICK_PERIOD_MS); // 100 millisecond delay, we will live
-        //  ^^might be unnecessary
-        for(int j = 0; i < 8; j++) { // for each ir sensor using that enable pin
-            int raw = adc1_get_raw(channels[j]);
-            int voltage = esp_adc_cal_raw_to_voltage(raw, &adc_chars); //mV value
-            float cur_voltage = ((float)voltage / 1000); //Now it be in volts
-            // now we can check the voltage to see if it is covered
-            if(cur_voltage >= 2.0) { // If it is read as covered
-                ir_matrix[i][j] = true; // Update value as covered
+        gpio_set_level(enables[i], 0);
+        //TESTING FOR MEASURING DOES NOT MATTER
+        vTaskDelay(pdMS_TO_TICKS(2000)); // 2 SECOND DELAY
+        //  ^^might be unnecessary, depending on how fast the IR is
+        for(int j = 0; j < 8; j++) { // for each ir sensor using that enable pin
+            // if channels[j] == ADC2_CHANNEL_7
+            // int raw = adc1_get_raw(channels[j]);
+            int level = gpio_get_level(gpio_channels[j]);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            bool card_was_placed = false;
+            if(level == 1) {
+                card_was_placed = true;
+            }
+            if(card_was_placed != ir_matrix[i][j]) { // If it is read as covered
+                ir_matrix[i][j] = card_was_placed; // Update value as covered
+                printf("enable %d, sensor %d VALUE CHANGED\n", i, j);
                 was_change = true;
             }
+            // vTaskDelay(pdMS_TO_TICKS(2000));
         }
         // shut it back off
-        gpio_set_level(enables[i], 0);
+        gpio_set_level(enables[i], 1);
     }
-    // might need gpio_reset_pin(pin) depending on the uhh strapping pins
+
     if(was_change) {
         // Create IR packet
         // Send IR packet
     }
+    vTaskDelay(100 / portTICK_PERIOD_MS);
 }
 
 
@@ -377,7 +392,6 @@ void app_main()
     // Install UART driver
     ESP_ERROR_CHECK(uart_driver_install(UART_NUM, BUF_SIZE, BUF_SIZE, 0, NULL, 0));
 
-
     // Notes from Journal about GPIOS
     // The Pins for ESP32 are:
     // reading input voltage of ir sensors:
@@ -387,39 +401,37 @@ void app_main()
     // left to right, top to bottom 1-6
     // GPIO12 - GPIO15, GPIO26 & GPIO27
 
-    // Documentation Notes
-    // ADC1 channel 0 is GPIO36
-    // ADC1 channel 1 is GPIO37
-    // ADC1 channel 2 is GPIO38
-    // ADC1 channel 3 is GPIO39
-    // ADC1 channel 4 is GPIO32
-    // ADC1 channel 5 is GPIO33
-    // ADC1 channel 6 is GPIO34
-    // ADC1 channel 7 is GPIO35
-
-    // ADC2 channel 5 is GPIO12
-    // ADC2 channel 4 is GPIO13
-    // ADC2 channel 6 is GPIO14
-    // ADC2 channel 3 is GPIO15
-    // ADC2 channel 9 is GPIO26
-    // ADC2 channel 7 is GPIO27
     //config these only once, setting is done during the loop
-    // config_gpio_output(GPIO_NUM_12);
-    // config_gpio_output(GPIO_NUM_13);
-    // config_gpio_output(GPIO_NUM_14);
-    // config_gpio_output(GPIO_NUM_15);
-    // config_gpio_output(GPIO_NUM_26);
-    // config_gpio_output(GPIO_NUM_27);
-    // // gpio_set_level(GPIO_NUM_X, 1); this turns it on
-    // //config adc pins
-    // config_adc_pin(ADC_CHANNEL_GPIO_32);
-    // config_adc_pin(ADC_CHANNEL_GPIO_33);
-    // config_adc_pin(ADC_CHANNEL_GPIO_34);
-    // config_adc_pin(ADC_CHANNEL_GPIO_35);
-    // config_adc_pin(ADC_CHANNEL_GPIO_36);
-    // config_adc_pin(ADC_CHANNEL_GPIO_37);
-    // config_adc_pin(ADC_CHANNEL_GPIO_38);
-    // config_adc_pin(ADC_CHANNEL_GPIO_39);
+    config_gpio_output(GPIO_NUM_12);
+    config_gpio_output(GPIO_NUM_13);
+    config_gpio_output(GPIO_NUM_14);
+    config_gpio_output(GPIO_NUM_15);
+    config_gpio_output(GPIO_NUM_2);
+    config_gpio_output(GPIO_NUM_27);
+    gpio_set_level(GPIO_NUM_12, 1); //this turns it on
+    gpio_set_level(GPIO_NUM_13, 1); //this turns it on
+    gpio_set_level(GPIO_NUM_14, 1); //this turns it on
+    gpio_set_level(GPIO_NUM_15, 1); //this turns it on
+    gpio_set_level(GPIO_NUM_2, 1); //this turns it on
+    gpio_set_level(GPIO_NUM_27, 1); //this turns it on
+
+
+    esp_rom_gpio_pad_select_gpio(GPIO_NUM_32);
+    gpio_set_direction(GPIO_NUM_32, GPIO_MODE_INPUT);
+    esp_rom_gpio_pad_select_gpio(GPIO_NUM_33);
+    gpio_set_direction(GPIO_NUM_33, GPIO_MODE_INPUT);
+    esp_rom_gpio_pad_select_gpio(GPIO_NUM_34);
+    gpio_set_direction(GPIO_NUM_34, GPIO_MODE_INPUT);
+    esp_rom_gpio_pad_select_gpio(GPIO_NUM_35);
+    gpio_set_direction(GPIO_NUM_35, GPIO_MODE_INPUT);
+    esp_rom_gpio_pad_select_gpio(GPIO_NUM_36);
+    gpio_set_direction(GPIO_NUM_36, GPIO_MODE_INPUT);
+    esp_rom_gpio_pad_select_gpio(GPIO_NUM_37);
+    gpio_set_direction(GPIO_NUM_37, GPIO_MODE_INPUT);
+    esp_rom_gpio_pad_select_gpio(GPIO_NUM_38);
+    gpio_set_direction(GPIO_NUM_38, GPIO_MODE_INPUT);
+    esp_rom_gpio_pad_select_gpio(GPIO_NUM_39);
+    gpio_set_direction(GPIO_NUM_39, GPIO_MODE_INPUT);
 
     // Create the RFID tag instantiation
     rc522_spi_create(&driver_config, &driver);
@@ -482,12 +494,14 @@ void app_main()
                 // }
                 break;
             case ACTIVE_PLACE:
+                ir_reading();
                 //RFID sensor is on for this entire state
                 break;
             case ACTIVE_ROLE:
-                //RFID sensor is turned off when switching into this state
+                ir_reading();
                 break;
             case PASSIVE_DEFENSE:
+                ir_reading();
                 loop = false; // temporary break out to avoid
                 // ESP_ERROR_CHECK(uart_driver_delete(UART_NUM));
                 break;
