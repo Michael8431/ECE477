@@ -46,6 +46,8 @@ card_location = [[None, None, None, None, None, None, None, None],
              [None, None, None, None, None, None, None, None]]
 group_indexes = []
 sensor_indexes = []
+group_place_indexes = []
+sensor_place_indexes = []
 
 
 def verify_state_change(cur, new):
@@ -193,6 +195,8 @@ def read_from_port(ser):
                     num_sensor = 0
                     group_indexes = []
                     sensor_indexes = []
+                    group_place_indexes = []
+                    sensor_place_indexes = []
                     for i in range(10, 101, 2):
                         num_group = int(num_iter / 8)
                         if(num_sensor >= 8):
@@ -210,6 +214,8 @@ def read_from_port(ser):
                             # was_removed = False
                             changed_group = num_group
                             changed_sensor = num_sensor
+                            group_place_indexes.append(changed_group)
+                            sensor_place_indexes.append(changed_sensor)
                             ir_matrix[num_group][num_sensor] = new_value
                             break
                         elif ir_matrix[num_group][num_sensor] != new_value and new_value == False:
@@ -421,10 +427,12 @@ def main():
     global stop_event_start_game
     global start_screen_on
     global root
+    global changed_group
+    global changed_sensor
     
 
 
-    current_port = 'COM6' # Change to what your device manager says
+    current_port = '/dev/ttyUSB0' # Change to what your device manager says
 
     ser = serial.Serial(port=current_port, baudrate=115200, timeout=1)
 
@@ -443,8 +451,12 @@ def main():
 
 
     pygame.init()
-    font = pygame.font.Font(None, 800)
+    # screen_dpi = 96
+    # pixel_size = (point_size * screen_dpi) / 72
+    # print(pixel_size)
     screen_info = pygame.display.Info()
+    point_size = 500
+    font = pygame.font.Font(None, point_size)
     screen = pygame.display.set_mode((screen_info.current_w, screen_info.current_h), pygame.NOFRAME) # NOFRAME for borderless window, FULLSCREEN for fullscreen
     clock = pygame.time.Clock()
     running = True
@@ -469,6 +481,12 @@ def main():
 
         # fill the screen with a color to wipe away anything from last frame
         screen.fill("blue")
+        text = f"{p1.health}-{p2.health}"
+        txt_surface = font.render(text, True, pygame.Color('green'))
+        txt_rect = txt_surface.get_rect()
+        w, h = screen.get_size()
+        txt_rect.center = (w//2, h//2)
+        screen.blit(txt_surface, txt_rect)
 
         # RENDER YOUR GAME HERE
         #Create group of cards
@@ -526,6 +544,14 @@ def main():
                 # print(CardStats[uid])
                 if(was_placed):
                     if uid != 0:
+                        # changed_group = 0
+                        # changed_sensor = 0
+                        # for i in range(len(group_place_indexes)):
+                            # if (sensor_place_indexes[i] == 0 or sensor_place_indexes[i] == 2 or sensor_place_indexes[i] == 5 or sensor_place_indexes[i] == 7):
+                                # changed_group = group_place_indexes[i]
+                                # changed_sensor = sensor_place_indexes[i]
+                                # break
+                                    
                         # PLACING THE CARD
                         this_card = Card(screen, path_to_cards[uid], uid,
                                         convert_ir_matrix_to_coords(changed_group,changed_sensor))
@@ -561,16 +587,23 @@ def main():
                 placed_cards.draw(screen)
                  #Keep Placing every Frame
         elif current_state == "ACTIVEROLE":
+            # print(has_changed)
+            # print(was_placed)
             if(has_changed):
                 if(was_placed):
                     # if changed_group <= 2:
                     if changed_sensor == 1 or changed_sensor == 3:
-                        if card_location[changed_group][changed_sensor-1] is not None:
+                        if card_location[changed_group][changed_sensor-1] is not None and card_location[changed_group][changed_sensor] is None:
                             card_location[changed_group][changed_sensor] = card_location[changed_group][changed_sensor-1]
+                            print("ROLE WAS PLACED")
                     elif changed_sensor == 4 or changed_sensor == 6:
-                        if card_location[changed_group][changed_sensor+1] is not None:
+                        if card_location[changed_group][changed_sensor+1] is not None and card_location[changed_group][changed_sensor] is None:
                             card_location[changed_group][changed_sensor] = card_location[changed_group][changed_sensor+1]
+                            print("ROLE WAS PLACED")
                     # else:
+                    #     was_placed = False
+                    #     has_changed = False
+                    #     continue
                     # if changed_sensor == 1 or changed_sensor == 3:
                     #     if card_location[changed_group][changed_sensor-1] is not None:
                     #         card_location[changed_group][changed_sensor] = card_location[changed_group][changed_sensor-1]
@@ -580,16 +613,26 @@ def main():
 
 
                     print("has_changed and was_placed")
-                    for i in range(len(card_location)):
-                        for j in range(len(card_location[i])):
-                            if card_location[i][j] is not None:
-                                if j+1 < 8:
-                                    if card_location[i][j+1] is not None:
-                                        if card_location[i][j].uid == card_location[i][j+1].uid:
-                                            placed_cards.remove(card_location[i][j]) #remove unrotated version
-                                            card_location[i][j].rotate_card()
-                                            placed_cards.add(card_location[i][j])  
-                                            print("ROTATED SPRITE ADDED")
+                    if changed_sensor == 1 or changed_sensor == 3:
+                        card_location[changed_group][changed_sensor] = card_location[changed_group][changed_sensor-1]
+                    elif changed_sensor == 4 or changed_sensor == 6:
+                        card_location[changed_group][changed_sensor] = card_location[changed_group][changed_sensor+1]
+                    placed_cards.remove(card_location[changed_group][changed_sensor])
+                    card_location[changed_group][changed_sensor].rotate_card()
+                    placed_cards.add(card_location[changed_group][changed_sensor])
+                    print("ROTATED SPRITE ADDED")
+                            
+                    
+                    # for i in range(len(card_location)):
+                    #     for j in range(len(card_location[i])):
+                    #         if card_location[i][j] is not None:
+                    #             if j+1 < 8:
+                    #                 if card_location[i][j+1] is not None:
+                    #                     if card_location[i][j].uid == card_location[i][j+1].uid:
+                    #                         placed_cards.remove(card_location[i][j]) #remove unrotated version
+                    #                         card_location[i][j].rotate_card()
+                    #                         placed_cards.add(card_location[i][j])  
+                    #                         print("ROTATED SPRITE ADDED")
                     was_placed = False
                     has_changed = False
                 elif(was_removed):
@@ -618,6 +661,13 @@ def main():
                 # print(CardStats[uid])
                 if(was_placed):
                     if uid != 0:
+                        changed_group = 0
+                        changed_sensor = 0
+                        for i in range(len(group_place_indexes)):
+                            if (sensor_place_indexes[i] == 0 or sensor_place_indexes[i] == 2 or sensor_place_indexes[i] == 5 or sensor_place_indexes[i] == 7):
+                                changed_group = group_place_indexes[i]
+                                changed_sensor = sensor_place_indexes[i]
+                                break
                         # PLACING THE CARD
                         this_card = Card(screen, path_to_cards[uid], uid,
                                         convert_ir_matrix_to_coords(changed_group,changed_sensor))
@@ -704,6 +754,15 @@ def main():
                             p2_damage_taken -= card.health
                             card.health = 0
                             print(f"{card.name} GOT COOKED, remove it from the board")
+                            # gp_idx = -1
+                            # for i in range(len(6)):
+                            #     try:
+                            #         gp_idx = i
+                            #         sr_idx = card_location[i].index(card)
+                            #         break
+                            #     except ValueError:
+                            #         pass
+                            # card_location[gp_idx][sr_idx] = None # REMOVES CARD OBJECT FROM EXISTENCE
                             placed_cards.remove(card)
                     print(f"p2 took {p2_damage_taken} damage")
                     if p2_damage_taken > 0:
@@ -755,9 +814,7 @@ def main():
 
         # Add Player Health Text to background
         # print("THIS RAN BLIT")
-        text = f"{p1.health}-{p2.health}"
-        txt_surface = font.render(text, True, pygame.Color('green'))
-        screen.blit(txt_surface, (0, screen_info.current_h/4))
+
 
         # flip() the display to put your work on screen
         pygame.display.flip()
