@@ -38,25 +38,32 @@ class Card(pygame.sprite.Sprite): #Subclass of pygame.Sprite
             #ORIGINAL self.coords[1] = divider + row_pad + 3*(row_pad + self.card_length)
             self.coords[1] = (self.card_length) * 3
         #Y coordinates
+        self.x_spot = self.screen_x / 6
         if slot[1] == 1:
             #ORIGINAL self.coords[0] = col_pad
             #self.coords[0] = (self.screen_x / 6)
-            self.coords[0] = (self.card_width) / 2 + 0
+            # self.coords[0] = (self.card_width) / 2 + 0
+            self.coords[0] = self.x_spot * 0
         elif slot[1] == 2:
             #ORIGINAL self.coords[0] = col_pad + col_pad + self.card_width
-            self.coords[0] = (self.card_width) / 2 + (self.card_width) * 2
+            # self.coords[0] = (self.card_width) / 2 + (self.card_width) * 2
+            self.coords[0] = self.x_spot * 1
         elif slot[1] == 3:
             #ORIGINAL self.coords[0] = col_pad + 2*(col_pad + self.card_width)
-            self.coords[0] = (self.card_width) / 2 + (self.card_width) * 4
+            # self.coords[0] = (self.card_width) / 2 + (self.card_width) * 4
+            self.coords[0] = self.x_spot * 2
         elif slot[1] == 4:
             #ORIGINAL self.coords[0] = col_pad + 3*(col_pad + self.card_width)
-            self.coords[0] = (self.card_width) / 2 + (self.card_width) * 6
+            # self.coords[0] = (self.card_width) / 2 + (self.card_width) * 6
+            self.coords[0] = self.x_spot * 3
         elif slot[1] == 5:
             #ORIGINAL self.coords[0] = col_pad + 4*(col_pad + self.card_width)
-            self.coords[0] = (self.card_width) / 2 + (self.card_width) * 8
+            # self.coords[0] = (self.card_width) / 2 + (self.card_width) * 8
+            self.coords[0] = self.x_spot * 4
         elif slot[1] == 6:
             #ORIGINAL self.coords[0] = col_pad + 5*(col_pad + self.card_width)
-            self.coords[0] = (self.card_width) / 2 + (self.card_width) * 10
+            # self.coords[0] = (self.card_width) / 2 + (self.card_width) * 10
+            self.coords[0] = self.x_spot * 5
     def __init__(self, screen, image_filename, id, slot):
         '''
         screen: pygame.display the sprite exists on
@@ -67,12 +74,14 @@ class Card(pygame.sprite.Sprite): #Subclass of pygame.Sprite
         '''
         pygame.sprite.Sprite.__init__(self)
         self.uid = id
+        self.is_rotated = False
         if not CardStats[id]:
             raise ValueError(f"Card uid={id} does not exist!!!")
         else:
             self.name = CardStats[id]["name"]
             self.health = CardStats[id]["health"]
             self.power = CardStats[id]["power"]
+            print(f"self.power = {self.power}")
             self.sleep = CardStats[id]["sleep"]
             self.mana = CardStats[id]["mana"]
             self.tapped = CardStats[id]["tapped"]
@@ -87,4 +96,14 @@ class Card(pygame.sprite.Sprite): #Subclass of pygame.Sprite
     def place_card(self):
         # self.screen.blit(self.image, tuple(self.coords),)
         self.rect.topleft = tuple(self.coords)
+    def old_place_card(self):
+        self.screen.blit(self.image, tuple(self.coords),)
+    def rotate_card(self):
+        if self.is_rotated == False:
+            self.is_rotated = True
+            self.image = pygame.transform.rotate(self.image, -90)
+    def unrotate_card(self):
+        if self.is_rotated:
+            self.is_rotated = False
+            self.image = pygame.transform.rotate(self.image, 90)
 
