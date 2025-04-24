@@ -330,17 +330,23 @@ void ir_reading() { // assume all pins are already configured
 
 
     gpio_num_t gpio_channels[8] = {
-        GPIO_NUM_32,GPIO_NUM_33,GPIO_NUM_34,GPIO_NUM_35,GPIO_NUM_36,
+        GPIO_NUM_35,GPIO_NUM_34,GPIO_NUM_33,GPIO_NUM_32,GPIO_NUM_36,
         GPIO_NUM_37,GPIO_NUM_38,GPIO_NUM_39
     };
 
+    // GPIO_NUM_13,
+    // GPIO_NUM_2,
+    // GPIO_NUM_15,
+    // GPIO_NUM_14,
+    // GPIO_NUM_27,
+    // GPIO_NUM_12
     gpio_num_t enables[6] = {
+        GPIO_NUM_27,
         GPIO_NUM_12,
-        GPIO_NUM_13,
-        GPIO_NUM_14,
         GPIO_NUM_15,
-        GPIO_NUM_26,
-        GPIO_NUM_27
+        GPIO_NUM_14,
+        GPIO_NUM_13,
+        GPIO_NUM_2
     };
     bool was_change = false;
 
