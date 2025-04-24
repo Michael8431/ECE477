@@ -69,58 +69,58 @@ def verify_state_change(cur, new):
 def convert_ir_matrix_to_coords(group:int, sensor:int): #Untested
     print(f"ran convert_ir_matrix_to_coords({group}, {sensor})")
     if group == 0 and sensor == 0:
-        return (2,3)
+        return (2,1)
     elif group == 0 and sensor == 2:
-        return (2,4)
+        return (2,2)
     elif group == 0 and sensor == 5:
-        return (1,4)
+        return (1,2)
     elif group == 0 and sensor == 7:
-        return (1,3)
+        return (1,1)
     
     if group == 1 and sensor == 0:
-        return (3,4)
+        return (2,3)
     elif group == 1 and sensor == 2:
-        return (3,3)
+        return (2,4)
     elif group == 1 and sensor == 5:
-        return (4,3)
+        return (1,3)
     elif group == 1 and sensor == 7:
-        return (4,4)
+        return (1,4)
     
     if group == 2 and sensor == 0:
-        return (3,2)
+        return (2,5)
     elif group == 2 and sensor == 2:
-        return (3,1)
+        return (2,6)
     elif group == 2 and sensor == 5:
-        return (4,1)
+        return (1,5)
     elif group == 2 and sensor == 7:
-        return (4,2)
+        return (1,6)
 
     if group == 3 and sensor == 0:
-        return (3,6)
+        return (3,2)
     elif group == 3 and sensor == 2:
-        return (3,5)
+        return (3,1)
     elif group == 3 and sensor == 5:
-        return (4,5)
+        return (4,1)
     elif group == 3 and sensor == 7:
-        return (4,6)
+        return (4,2)
 
     if group == 4 and sensor == 0:
-        return (2,1)
+        return (3,4)
     elif group == 4 and sensor == 2:
-        return (2,2)
+        return (3,3)
     elif group == 4 and sensor == 5:
-        return (1,2)
+        return (4,3)
     elif group == 4 and sensor == 7:
-        return (1,1)
+        return (4,4)
 
     if group == 5 and sensor == 0:
-        return (2,5)
+        return (3,6)
     elif group == 5 and sensor == 2:
-        return (2,6)
+        return (3,5)
     elif group == 5 and sensor == 5:
-        return (1,6)
+        return (4,5)
     elif group == 5 and sensor == 7:
-        return (1,5)
+        return (4,6)
 
 
 
@@ -175,7 +175,7 @@ def read_from_port(ser):
                     print(f"current state = {current_state}")
                     print(f"uid = {uid}")
                 if data[0] == 2: #IR Matrix Data Packet
-                    data = data[0:53]
+                    # data = data[0:53]
                     packet = data.hex()
                     print("GOT IR PACKET")
                     header_value = "IR Data Packet"
@@ -187,12 +187,16 @@ def read_from_port(ser):
                         sensor = (num_iter % 8) # 0-7
                         group = (num_iter % 6) # 0-5
                         new_value = bool(int(packet[i:i+2], 16) == 1)
+                        # print(new_value)
                         if ir_matrix[group][sensor] != new_value and new_value == True:
+                            print("NEW VALUE WAS TRUE")
                             has_changed = True # This is a newly placed card
                             was_placed = True
+                            # was_removed = False
                             changed_group = group
                             changed_sensor = sensor
                             ir_matrix[group][sensor] = new_value
+                            break
                         elif ir_matrix[group][sensor] != new_value and new_value == False:
                             print("THE CARD GOT REMOVED")
                             ir_matrix[group][sensor] = new_value # For removing a Card
