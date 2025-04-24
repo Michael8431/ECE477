@@ -278,8 +278,8 @@ p2 = PlayerClass(playerNum=2, health=10)
 
 winningPlayer = -1 # 1 for P1, 2 for P2
 
-p1_damage = 0
-p2_damage = 0
+p1_damage_taken = 0
+p2_damage_taken = 0
 group_damage = [0,0,0,0,0,0]
 group_health = [0,0,0,0,0,0]
 
@@ -298,8 +298,8 @@ def main():
     global turn_swap_needed
     global p1
     global p2
-    global p1_damage
-    global p2_damage
+    global p1_damage_taken
+    global p2_damage_taken
     global group_damage
     global group_health
     
@@ -543,6 +543,10 @@ def main():
             # group 1 attacks group 4
             # group 2 attacks group 5
             # sensor 0,2,5,7
+            p1_blockers = []
+            p1_attackers = []
+            p2_blockers = []
+            p2_attackers = []
 
             
             for group_idx in range(6):
@@ -553,23 +557,45 @@ def main():
                             print(f"Card is Rotated = {card_location[group_idx][sensor_idx].is_rotated}")
                             print(f"Card damage = {card_location[group_idx][sensor_idx].power}")
                             if card_location[group_idx][sensor_idx].is_rotated:
+                                if group_idx <= 2:
+                                    p1_attackers.append(card_location[group_idx][sensor_idx])
+                                else:
+                                    p2_attackers.append(card_location[group_idx][sensor_idx])
                                 group_damage[group_idx] += card_location[group_idx][sensor_idx].power
-                                group_health[group_idx] += card_location[group_idx][sensor_idx].health
                                 print("GROUP DAMAGE")
                                 print(group_damage)
-                                print("GROUP HEALTH")
-                                print(group_health)
+                            else:
+                                if group_idx <= 2:
+                                    p1_blockers.append(card_location[group_idx][sensor_idx])
+                                else:
+                                    p2_blockers.append(card_location[group_idx][sensor_idx])
+                                # group_health[group_idx] += card_location[group_idx][sensor_idx].health
+                                # print("GROUP HEALTH")
+                                # print(group_health)
             for group_idx in range(len(group_damage)):
                 if group_idx <= 2:
-                    p2_damage = group_damage[group_idx] - group_health[3 + group_idx]
-                    print(f"p2 took {p2_damage} damage")
-                    if p2_damage > 0:
-                        p2.health -= p2_damage
+                    # p2_damage_taken = group_damage[group_idx] - group_health[3 + group_idx]
+                    p2_damage_taken = group_damage[group_idx]
+                    for card in p2_blockers:
+                        if p2_damage_taken > card.health:
+                            p2_damage_taken -= card.health
+                            card.health = 0
+                            print(f"{card.name} GOT COOKED, remove it from the board")
+                            placed_cards.remove(card)
+                    print(f"p2 took {p2_damage_taken} damage")
+                    if p2_damage_taken > 0:
+                        p2.health -= p2_damage_taken
                 else:
-                    p1_damage = group_damage[group_idx] - group_health[group_idx - 3]
-                    print(f"p1 took {p1_damage} damage")
-                    if p1_damage > 0:
-                        p1.health -= p1_damage
+                    p1_damage_taken = group_damage[group_idx]
+                    for card in p1_blockers:
+                        if p1_damage_taken > card.health:
+                            p1_damage_taken -= card.health
+                            card.health = 0
+                            print(f"{card.name} GOT COOKED, remove it from the board")
+                            placed_cards.remove(card)
+                    print(f"p1 took {p1_damage_taken} damage")
+                    if p1_damage_taken > 0:
+                        p1.health -= p1_damage_taken
                 if p1.health <= 0:
                     winningPlayer = 2
                     current_state = "WINSCREEN"
@@ -578,8 +604,8 @@ def main():
                     winningPlayer = 1
                     current_state = "WINSCREEN"
                     break
-            p1_damage = 0
-            p2_damage = 0
+            p1_damage_taken = 0
+            p2_damage_taken = 0
             group_damage = [0,0,0,0,0,0]
             group_health = [0,0,0,0,0,0]
             if current_state != "WINSCREEN":
