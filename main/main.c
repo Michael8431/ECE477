@@ -215,6 +215,8 @@ void next_state() { //Logic for switching states via button press
         case IDLE:
             // Not a button toggled state, see other switch case below
             // pc_is_ready = true; //TEMPORARY PERMISSION OVERRIDE FOR TESTING
+            
+            esp_err_t temp = rc522_start(scanner);
             rc522_register_events(scanner, RC522_EVENT_PICC_STATE_CHANGED, on_picc_state_changed, NULL);
             // xTaskCreate(uart_tx_task, "uart_tx_task", 2048, NULL, 10, &uartTxTaskHandle); //To start the task
             set_state(ACTIVE_PLACE);
