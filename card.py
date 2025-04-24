@@ -85,5 +85,6 @@ class Card(pygame.sprite.Sprite): #Subclass of pygame.Sprite
             self.image = pygame.transform.flip(self.image, True, True)
         self.rect = pygame.Rect(self.coords[0], self.coords[1], self.card_width, self.card_length)
     def place_card(self):
-        self.screen.blit(self.image, tuple(self.coords),)
+        # self.screen.blit(self.image, tuple(self.coords),)
+        self.rect.topleft = tuple(self.coords)
 

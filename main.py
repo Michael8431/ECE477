@@ -18,6 +18,7 @@ from uids import *
 has_changed = False
 new_card = False
 was_placed = False
+was_removed = False
 
 changed_group = -1
 changed_sensor = -1
@@ -32,6 +33,15 @@ ir_matrix = [[False, False, False, False, False, False, False, False],
              [False, False, False, False, False, False, False, False],
              [False, False, False, False, False, False, False, False],
              [False, False, False, False, False, False, False, False]]
+card_location = [[None, None, None, None, None, None, None, None],
+             [None, None, None, None, None, None, None, None],
+             [None, None, None, None, None, None, None, None],
+             [None, None, None, None, None, None, None, None],
+             [None, None, None, None, None, None, None, None],
+             [None, None, None, None, None, None, None, None]]
+group_indexes = []
+sensor_indexes = []
+
 
 def verify_state_change(cur, new):
     if cur == 'ERROR' or new == 'ERROR':
@@ -57,127 +67,62 @@ def verify_state_change(cur, new):
     
 
 def convert_ir_matrix_to_coords(group:int, sensor:int): #Untested
+    print(f"ran convert_ir_matrix_to_coords({group}, {sensor})")
     if group == 0 and sensor == 0:
-        return (3,1)
+        return (2,3)
     elif group == 0 and sensor == 2:
-        return (3,2)
-    elif group == 0 and sensor == 4:
-        return (4,1)
-    elif group == 0 and sensor == 6:
-        return (4,2)
+        return (2,4)
+    elif group == 0 and sensor == 5:
+        return (1,4)
+    elif group == 0 and sensor == 7:
+        return (1,3)
     
     if group == 1 and sensor == 0:
-        return (3,3)
-    elif group == 1 and sensor == 2:
         return (3,4)
-    elif group == 1 and sensor == 4:
+    elif group == 1 and sensor == 2:
+        return (3,3)
+    elif group == 1 and sensor == 5:
         return (4,3)
-    elif group == 1 and sensor == 6:
+    elif group == 1 and sensor == 7:
         return (4,4)
     
     if group == 2 and sensor == 0:
-        return (3,5)
+        return (3,2)
     elif group == 2 and sensor == 2:
-        return (3,6)
-    elif group == 2 and sensor == 4:
-        return (4,5)
-    elif group == 2 and sensor == 6:
-        return (4,6)
+        return (3,1)
+    elif group == 2 and sensor == 5:
+        return (4,1)
+    elif group == 2 and sensor == 7:
+        return (4,2)
 
     if group == 3 and sensor == 0:
-        return (1,5)
+        return (3,6)
     elif group == 3 and sensor == 2:
-        return (1,6)
-    elif group == 3 and sensor == 4:
-        return (2,5)
-    elif group == 3 and sensor == 6:
-        return (2,6)
+        return (3,5)
+    elif group == 3 and sensor == 5:
+        return (4,5)
+    elif group == 3 and sensor == 7:
+        return (4,6)
 
     if group == 4 and sensor == 0:
-        return (1,3)
+        return (2,1)
     elif group == 4 and sensor == 2:
-        return (1,4)
-    elif group == 4 and sensor == 4:
-        return (2,3)
-    elif group == 4 and sensor == 6:
-        return (2,4)
+        return (2,2)
+    elif group == 4 and sensor == 5:
+        return (1,2)
+    elif group == 4 and sensor == 7:
+        return (1,1)
 
     if group == 5 and sensor == 0:
-        return (1,1)
+        return (2,5)
     elif group == 5 and sensor == 2:
-        return (1,2)
-    elif group == 5 and sensor == 4:
-        return (2,1)
-    elif group == 5 and sensor == 6:
-        return (2,2)
+        return (2,6)
+    elif group == 5 and sensor == 5:
+        return (1,6)
+    elif group == 5 and sensor == 7:
+        return (1,5)
 
 
-# def read_from_port(ser):
-#     global current_state
-#     global uid
-#     global ir_matrix
-#     global has_changed
-#     global new_card
-#     global was_placed
-#     global changed_group
-#     global changed_sensor
-#     while True:
-#         if ser.in_waiting:
-#             data = ser.readline()
-#             if data:
-#                 packet = data.hex()
-#                 if data[0] == 0:
-#                     header_value = "Game State"
-#                 if data[0] == 1:
-#                     header_value = "RFID Packet"
-#                 elif data[0] == 2:
-#                     header_value = "IR Packet"
-#                 else:
-#                     header_value = "ERROR"
-#                     print(data[0])
-#                     raise ValueError("Invalid Header Value for newest packet")
-
-#                 if header_value == "Game State": #Game State Packet without RFID
-#                     #Next 4 bytes are current_game, I only care about 1st byte
-#                     new_state = returnState(packet[2:4])
-#                     if verify_state_change(current_state, new_state) == 1:
-#                         current_state = new_state
-                    
-#                 elif header_value == "RFID Packet": 
-#                     new_state = returnState(packet[2:4])
-#                     if verify_state_change(current_state, new_state) == 1:
-#                         current_state = new_state
-#                     uid_hex_string = packet[10:18]
-#                     uid = int(uid_hex_string, 16)
-#                     if int(uid_hex_string, 16) not in uids_list:
-#                         print("Failed to find card, no uid stored")
-#                         uid = 0
-#                     else:
-#                         uid = int(uid_hex_string, 16)
-#                     print(f"header value = {header_value}")
-#                     print(f"current state = {current_state}")
-#                     print(f"uid = {uid}")
-#                     new_card = True
-                    
-#                 elif header_value == "IR Packet":
-#                     new_state = returnState(packet[2:4])
-#                     if verify_state_change(current_state, new_state) == 1:
-#                         current_state = new_state
-#                     # NEXT 48 BYTES are the IR Matrix data
-#                     # Could potentially alter this to send some kind of change data
-#                     #   instead of the entire thing
-#                     # 48 bytes as a hexstring is 96 characters
-#                     num_iter = 0
-#                     for i in range(0, 96, 2):
-#                         num_iter += 1
-#                         sensor = (num_iter % 8) # 0-7
-#                         group = (num_iter % 6) # 0-5
-#                         new_value = bool(int(packet[i:i+2], 16) == 1)
-#                         if ir_matrix[group][sensor] != new_value:
-#                             has_changed = True
-#                             changed_sensor = sensor
-#                             changed_group = group
-#                             ir_matrix[group][sensor] = new_value
 
 def read_from_port(ser):
     global current_state
@@ -189,6 +134,10 @@ def read_from_port(ser):
     global changed_group
     global changed_sensor
     global num_prev_cycles
+    global was_removed
+    global card_location
+    global sensor_indexes
+    global group_indexes
     while True:
         if ser.in_waiting:
             # Erroneous Data, skipping to avoid errors
@@ -231,6 +180,8 @@ def read_from_port(ser):
                     print("GOT IR PACKET")
                     header_value = "IR Data Packet"
                     num_iter = 0
+                    group_indexes = []
+                    sensor_indexes = []
                     for i in range(0, 96, 2):
                         num_iter += 1
                         sensor = (num_iter % 8) # 0-7
@@ -238,11 +189,19 @@ def read_from_port(ser):
                         new_value = bool(int(packet[i:i+2], 16) == 1)
                         if ir_matrix[group][sensor] != new_value and new_value == True:
                             has_changed = True # This is a newly placed card
-                            changed_sensor = sensor
+                            was_placed = True
                             changed_group = group
+                            changed_sensor = sensor
                             ir_matrix[group][sensor] = new_value
                         elif ir_matrix[group][sensor] != new_value and new_value == False:
+                            print("THE CARD GOT REMOVED")
                             ir_matrix[group][sensor] = new_value # For removing a Card
+                            group_indexes.append(group)
+                            sensor_indexes.append(sensor)
+                            changed_sensor = sensor
+                            changed_group = group
+                            has_changed = True
+                            was_removed = True
                     print(ir_matrix)
                 # time.sleep(1)
 
@@ -306,6 +265,11 @@ def main():
     global uid
     global has_changed
     global num_prev_cycles
+    global was_placed
+    global was_removed
+    global card_location
+    global sensor_indexes
+    global group_indexes
     
     p1 = PlayerClass(1, 100)
     p2 = PlayerClass(2, 100)
@@ -332,7 +296,8 @@ def main():
     clock = pygame.time.Clock()
     running = True
 
-    placed_cards = []
+    placed_cards = pygame.sprite.Group()
+    
     
     first_loop = True
     
@@ -350,27 +315,22 @@ def main():
         # RENDER YOUR GAME HERE
         #Create group of cards
         # p1_cards = pygame.sprite.Group() #creates group of cards for P1(bottom of screen)
-        
-        # this_card = Card(screen, 'joker_card.jpg', 0, (1,1))
-        # this_card.place_card()
-        
-        # this_card2 = Card(screen, 'joker_card.jpg', 0, (1,2))
-        # this_card2.place_card()
-        
-        this_card_1 = Card(screen, path_to_cards[uid_Consort_Radahn_1], uid_Consort_Radahn_1, convert_ir_matrix_to_coords(0,0))
-        this_card_1.place_card()
-        this_card_2 = Card(screen, path_to_cards[uid_Godfrey_2], uid_Godfrey_2, convert_ir_matrix_to_coords(5,4))
-        this_card_2.place_card()
-        
-        this_card_3 = Card(screen, path_to_cards[uid_Consort_Radahn_1], uid_Consort_Radahn_1, convert_ir_matrix_to_coords(1,0))
-        this_card_3.place_card()
-        this_card_4 = Card(screen, path_to_cards[uid_Godfrey_2], uid_Godfrey_2, convert_ir_matrix_to_coords(4,4))
-        this_card_4.place_card()
 
-        this_card_5 = Card(screen, path_to_cards[uid_Consort_Radahn_1], uid_Consort_Radahn_1, convert_ir_matrix_to_coords(2,0))
-        this_card_5.place_card()
-        this_card_6 = Card(screen, path_to_cards[uid_Godfrey_2], uid_Godfrey_2, convert_ir_matrix_to_coords(3,4))
-        this_card_6.place_card()
+        
+        # this_card_1 = Card(screen, path_to_cards[uid_Consort_Radahn_1], uid_Consort_Radahn_1, convert_ir_matrix_to_coords(0,0))
+        # this_card_1.place_card()
+        # this_card_2 = Card(screen, path_to_cards[uid_Godfrey_2], uid_Godfrey_2, convert_ir_matrix_to_coords(1,0))
+        # this_card_2.place_card()
+        
+        # this_card_3 = Card(screen, path_to_cards[uid_Consort_Radahn_1], uid_Consort_Radahn_1, convert_ir_matrix_to_coords(2,0))
+        # this_card_3.place_card()
+        # this_card_4 = Card(screen, path_to_cards[uid_Godfrey_2], uid_Godfrey_2, convert_ir_matrix_to_coords(3,0))
+        # this_card_4.place_card()
+
+        # this_card_5 = Card(screen, path_to_cards[uid_Consort_Radahn_1], uid_Consort_Radahn_1, convert_ir_matrix_to_coords(4,0))
+        # this_card_5.place_card()
+        # this_card_6 = Card(screen, path_to_cards[uid_Godfrey_2], uid_Godfrey_2, convert_ir_matrix_to_coords(5,0))
+        # this_card_6.place_card()
         # TEMPORARY COMMENT OUT
         # if(has_changed):
         #     print(CardStats[uid])
@@ -397,35 +357,63 @@ def main():
                 #check if game winner
                 if num_prev_cycles != 0:
                     current_state = "BATTLETURN"
+                    #Swap Whose turn it is
+                    if random_num == 1:
+                        random_num = 2
+                    else:
+                        random_num = 1
+                    if random_num == 1:
+                        print("P1 goes first next")
+                    else:
+                        print("P2 goes first next")
                     print("BATTLETURN entered")
                     continue
-                #Swap Whose turn it is
-                if random_num == 1:
-                    random_num = 2
-                else:
-                    random_num = 1
+
         elif current_state == "ACTIVEPLACE":
             # This PLACES The new card, I need something to keep placing existing cards
             if(has_changed): # IF For when an IR is covered to place that card
                 # print(CardStats[uid])
-                if uid != 0:
-                    # PLACING THE CARD
-                    this_card = Card(screen, path_to_cards[uid], uid,
-                                    convert_ir_matrix_to_coords(changed_group,changed_sensor))
-                    this_card.place_card()
-                    placed_cards.append(this_card)
-                    uid = 0
-                has_changed = False
-            if(True): #Calculate to see if card died
-                for card in placed_cards:
-                    if card.health <= 0:
+                if(was_placed):
+                    if uid != 0:
+                        # PLACING THE CARD
+                        this_card = Card(screen, path_to_cards[uid], uid,
+                                        convert_ir_matrix_to_coords(changed_group,changed_sensor))
+                        this_card.place_card()
+                        card_location[changed_group][changed_sensor] = this_card
+                        placed_cards.add(this_card)
+                        print("added card to group")
+                        uid = 0
+                    was_placed = False
+                    has_changed = False
+                elif(was_removed):
+                    print("was_removed condition")
+                    removed_uid = 0
+                    len_of_indexes = len(sensor_indexes)
+                    for i in (range(len_of_indexes)):
+                        if card_location[group_indexes[i]][sensor_indexes[i]] is not None:
+                            removed_uid = card_location[group_indexes[i]][sensor_indexes[i]].uid
+                            print(f"uid that was removed {removed_uid}")
+                            # REMOVE THE CARD
+                            this_card = Card(screen, path_to_cards[removed_uid], removed_uid,
+                                            convert_ir_matrix_to_coords(group_indexes[i],sensor_indexes[i]))
+                            # this_card.place_card()
+                            print("WAS REMOVED RAN")
+                            placed_cards.remove(card_location[group_indexes[i]][sensor_indexes[i]])
+                            print("BELOW SHOULD BE FALSE")
+                            print(card_location[group_indexes[i]][sensor_indexes[i]] in placed_cards)
+                    group_indexes = []
+                    sensor_indexes = []
+                    has_changed = False
+                    was_removed = False
+            if(True): #Always Places original cards
+                for c in placed_cards.sprites():
+                    if c.health <= 0:
                         # Install Popup window to tell player to remove that card
                         # Could potentially just do a red X overlapping sprite like Zack said, and wait
                         #   until the player removes it
                         pass
-            if(True): #Always Places original cards
-                for c in placed_cards:
-                    c.place_card() #Keep Placing every Frame
+                placed_cards.draw(screen)
+                 #Keep Placing every Frame
         elif current_state == "ACTIVEROLE":
             # DO IR reading for the rotation of cards
             pass
