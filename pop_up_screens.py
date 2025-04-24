@@ -1,10 +1,22 @@
 from tkinter import*
 from PIL import ImageTk, Image
+from main import main
 
-global player1
-global player2
+player1 = 1
+player2 = 0
+
+
+root = None
+
+def close_function():
+    global root
+    print("THIS RAN")
+    root.destroy()
 
 def startScreen():
+    global player1
+    global player2
+    global root
     root = Tk()
     root.title("Grid Wars")
     root.attributes("-fullscreen", True) # makes window fullscreen
@@ -32,14 +44,13 @@ def startScreen():
 
     button_start = Button(root, text="Push Button to Start!", wraplength=250, 
                         font=("Terminal", 25),
-                        command=root.quit,
+                        command=close_function,
                         bg="#222222",  # Match this to part of your image
                         fg="red",
                         activebackground="#222222",
                         bd=10, highlightthickness=2, highlightbackground="red", highlightcolor="red",
                         padx=0, pady=0)
     button_start_window = canvas.create_window(screen_width // 1.975, screen_height // 1.55, window=button_start)
-
     root.mainloop()
 
 
@@ -100,13 +111,12 @@ def endScreen(winner, loser):
                       padx=10, pady=10)
     play_again_label_window = canvas.create_window(screen_width // 2.0, screen_height // 1.275, window=play_again_label)
 
-
+    root.after(10000, root.destroy)
     root.mainloop()
 
 if __name__ == "__main__":
-    startScreen()
+    # startScreen()
    
-    player1 = 1
-    player2 = 0
-    # endScreen(winner= player1, loser= player2)
+
+    endScreen(winner= player1, loser= player2)
     # endScreen(winner= player2, loser= player1)

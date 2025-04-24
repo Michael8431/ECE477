@@ -10,6 +10,11 @@ import threading
 import time
 import random
 from uids import *
+# from pop_up_screens import *
+from tkinter import*
+from PIL import ImageTk, Image
+from pop_up_screens import *
+
 
 #Sources Used: 
 # https://www.pygame.org/docs/
@@ -284,6 +289,116 @@ group_damage = [0,0,0,0,0,0]
 group_health = [0,0,0,0,0,0]
 
 
+# global player1
+# global player2
+
+stop_event_start_game = threading.Event()
+stop_event_end_game = threading.Event()
+
+# def startScreen():
+#     while not stop_event_start_game.is_set():
+#         root = Tk()
+#         root.title("Grid Wars")
+#         root.attributes("-fullscreen", True) # makes window fullscreen
+
+#         # Get screen dimensions
+#         screen_width = root.winfo_screenwidth()
+#         screen_height = root.winfo_screenheight()
+
+#         # Load image and resize
+#         bg_image = Image.open("CardArt/Grid_background.png")
+#         bg_image = bg_image.resize((screen_width, screen_height))  # Resize to fit screen
+#         bg = ImageTk.PhotoImage(bg_image)
+
+#         canvas = Canvas(root, width=screen_width, height=screen_height)
+#         canvas.pack(fill="both", expand=True)
+
+#         canvas.create_image(0, 0, image=bg, anchor="nw")  # Draw background image
+
+#         # Create text label for Play Again
+#         # play_label = Label(root, text="Press Button to Play!", wraplength=250, width=10,
+#         #                   font=("Terminal", 25),
+#         #                   fg="red", bg="#000000",  # Set background to match style
+#         #                   padx=0, pady=20)
+#         # play_label_window = canvas.create_window(screen_width // 2.0, screen_height // 1.55, window=play_label)
+
+#         button_start = Button(root, text="Push Button to Start!", wraplength=250, 
+#                             font=("Terminal", 25),
+#                             command=root.quit,
+#                             bg="#222222",  # Match this to part of your image
+#                             fg="red",
+#                             activebackground="#222222",
+#                             bd=10, highlightthickness=2, highlightbackground="red", highlightcolor="red",
+#                             padx=0, pady=0)
+#         button_start_window = canvas.create_window(screen_width // 1.975, screen_height // 1.55, window=button_start)
+
+#         root.mainloop()
+
+
+# def endScreen(winner, loser):
+#     while not stop_event_end_game.is_set():
+#         root = Tk()
+#         root.title("Grid Wars")
+#         root.attributes("-fullscreen", True) # makes window fullscreen
+
+#         # Get screen dimensions
+#         screen_width = root.winfo_screenwidth()
+#         screen_height = root.winfo_screenheight()
+
+#         # Load image and resize
+#         bg_image = Image.open("CardArt/Grid_end.png")
+#         bg_image = bg_image.resize((screen_width, screen_height))  # Resize to fit screen
+#         bg = ImageTk.PhotoImage(bg_image)
+
+#         canvas = Canvas(root, width=screen_width, height=screen_height)
+#         canvas.pack(fill="both", expand=True)
+
+#         canvas.create_image(0, 0, image=bg, anchor="nw")  # Draw background image
+
+#         if (winner == player1) and (loser == player2):
+#             win_text = "PLAYER 1 :)"
+#             lose_text = "PLAYER 2 :("
+
+#             # Create text label for result
+#             win_label = Label(root, text=win_text, 
+#                             font=("Terminal", 45),
+#                             fg="green", bg="#99D9EA",  # Set background to match style
+#                             padx=10, pady=10)
+#             lose_label = Label(root, text=lose_text, 
+#                             font=("Terminal", 45),
+#                             fg="red", bg="#99D9EA",  # Set background to match style
+#                             padx=10, pady=10)
+#             win_label_window = canvas.create_window(screen_width // 3.8, screen_height // 1.15, window=win_label)
+#             lose_label_window = canvas.create_window(screen_width // 1.4, screen_height // 1.15, window=lose_label)
+#         if (winner == player2) and (loser == player1):
+#             win_text = "PLAYER 2 :)"
+#             lose_text = "PLAYER 1 :("
+
+#             # Create text label for result
+#             win_label = Label(root, text=win_text, 
+#                             font=("Terminal", 45),
+#                             fg="green", bg="#99D9EA",  # Set background to match style
+#                             padx=10, pady=10)
+#             lose_label = Label(root, text=lose_text, 
+#                             font=("Terminal", 45),
+#                             fg="red", bg="#99D9EA",  # Set background to match style
+#                             padx=10, pady=10)
+#             win_label_window = canvas.create_window(screen_width // 3.8, screen_height // 1.15, window=win_label)
+#             lose_label_window = canvas.create_window(screen_width // 1.4, screen_height // 1.15, window=lose_label)
+
+#         # Create text label for Play Again
+#         play_again_label = Label(root, text="Press Button to Play Again!", 
+#                         font=("Terminal", 20),
+#                         fg="black", bg="#99D9EA",  # Set background to match style
+#                         padx=10, pady=10)
+#         play_again_label_window = canvas.create_window(screen_width // 2.0, screen_height // 1.275, window=play_again_label)
+
+
+#         root.mainloop()
+
+start_screen_on = True
+
+
 def main():
     global current_state
     global uid
@@ -302,6 +417,10 @@ def main():
     global p2_damage_taken
     global group_damage
     global group_health
+    global stop_event_start_game
+    global stop_event_start_game
+    global start_screen_on
+    global root
     
 
 
@@ -311,6 +430,7 @@ def main():
 
     # ser = 0 # Swap with this to run without microcontroller
 
+    startScreen()
 
     thread = threading.Thread(target=read_from_port, args=(ser,))
     thread.daemon = True
@@ -321,7 +441,9 @@ def main():
     print(f"Listening on {current_port}...")
 
 
+
     pygame.init()
+    font = pygame.font.Font(None, 800)
     screen_info = pygame.display.Info()
     screen = pygame.display.set_mode((screen_info.current_w, screen_info.current_h), pygame.NOFRAME) # NOFRAME for borderless window, FULLSCREEN for fullscreen
     clock = pygame.time.Clock()
@@ -334,8 +456,9 @@ def main():
     
     turn_swap_needed = False
     
-
-
+    
+    # For other threads, I will declare them here, but I will START them elsewhere
+    
     
     while running:
         # poll for events
@@ -620,12 +743,21 @@ def main():
             #   Display some kind of win screen window
             if winningPlayer == 1:
                 print("PLAYER 1 WON")
+                endScreen(1,0)
+                break
             elif winningPlayer == 2:
                 print("PLAYER 2 WON")
+                endScreen(0,1)
+                break
             else:
                 print("NOBODY WON YET, SWAPPING FIRST TURN in IDLE NEXT TIME")
             current_state = "IDLE"
 
+        # Add Player Health Text to background
+        # print("THIS RAN BLIT")
+        text = f"{p1.health}-{p2.health}"
+        txt_surface = font.render(text, True, pygame.Color('green'))
+        screen.blit(txt_surface, (0, screen_info.current_h/4))
 
         # flip() the display to put your work on screen
         pygame.display.flip()
