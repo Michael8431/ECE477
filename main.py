@@ -284,8 +284,8 @@ class CardClass():
 #   if an RFID packet, next 4 bytes are UID in hex. if an IR packet, next 48 bytes are either 1 or 0 each
 #
 
-p1 = PlayerClass(playerNum=1, health=10)
-p2 = PlayerClass(playerNum=2, health=10)
+p1 = PlayerClass(playerNum=1, health=20)
+p2 = PlayerClass(playerNum=2, health=20)
 
 winningPlayer = -1 # 1 for P1, 2 for P2
 
@@ -301,106 +301,7 @@ group_health = [0,0,0,0,0,0]
 stop_event_start_game = threading.Event()
 stop_event_end_game = threading.Event()
 
-# def startScreen():
-#     while not stop_event_start_game.is_set():
-#         root = Tk()
-#         root.title("Grid Wars")
-#         root.attributes("-fullscreen", True) # makes window fullscreen
 
-#         # Get screen dimensions
-#         screen_width = root.winfo_screenwidth()
-#         screen_height = root.winfo_screenheight()
-
-#         # Load image and resize
-#         bg_image = Image.open("CardArt/Grid_background.png")
-#         bg_image = bg_image.resize((screen_width, screen_height))  # Resize to fit screen
-#         bg = ImageTk.PhotoImage(bg_image)
-
-#         canvas = Canvas(root, width=screen_width, height=screen_height)
-#         canvas.pack(fill="both", expand=True)
-
-#         canvas.create_image(0, 0, image=bg, anchor="nw")  # Draw background image
-
-#         # Create text label for Play Again
-#         # play_label = Label(root, text="Press Button to Play!", wraplength=250, width=10,
-#         #                   font=("Terminal", 25),
-#         #                   fg="red", bg="#000000",  # Set background to match style
-#         #                   padx=0, pady=20)
-#         # play_label_window = canvas.create_window(screen_width // 2.0, screen_height // 1.55, window=play_label)
-
-#         button_start = Button(root, text="Push Button to Start!", wraplength=250, 
-#                             font=("Terminal", 25),
-#                             command=root.quit,
-#                             bg="#222222",  # Match this to part of your image
-#                             fg="red",
-#                             activebackground="#222222",
-#                             bd=10, highlightthickness=2, highlightbackground="red", highlightcolor="red",
-#                             padx=0, pady=0)
-#         button_start_window = canvas.create_window(screen_width // 1.975, screen_height // 1.55, window=button_start)
-
-#         root.mainloop()
-
-
-# def endScreen(winner, loser):
-#     while not stop_event_end_game.is_set():
-#         root = Tk()
-#         root.title("Grid Wars")
-#         root.attributes("-fullscreen", True) # makes window fullscreen
-
-#         # Get screen dimensions
-#         screen_width = root.winfo_screenwidth()
-#         screen_height = root.winfo_screenheight()
-
-#         # Load image and resize
-#         bg_image = Image.open("CardArt/Grid_end.png")
-#         bg_image = bg_image.resize((screen_width, screen_height))  # Resize to fit screen
-#         bg = ImageTk.PhotoImage(bg_image)
-
-#         canvas = Canvas(root, width=screen_width, height=screen_height)
-#         canvas.pack(fill="both", expand=True)
-
-#         canvas.create_image(0, 0, image=bg, anchor="nw")  # Draw background image
-
-#         if (winner == player1) and (loser == player2):
-#             win_text = "PLAYER 1 :)"
-#             lose_text = "PLAYER 2 :("
-
-#             # Create text label for result
-#             win_label = Label(root, text=win_text, 
-#                             font=("Terminal", 45),
-#                             fg="green", bg="#99D9EA",  # Set background to match style
-#                             padx=10, pady=10)
-#             lose_label = Label(root, text=lose_text, 
-#                             font=("Terminal", 45),
-#                             fg="red", bg="#99D9EA",  # Set background to match style
-#                             padx=10, pady=10)
-#             win_label_window = canvas.create_window(screen_width // 3.8, screen_height // 1.15, window=win_label)
-#             lose_label_window = canvas.create_window(screen_width // 1.4, screen_height // 1.15, window=lose_label)
-#         if (winner == player2) and (loser == player1):
-#             win_text = "PLAYER 2 :)"
-#             lose_text = "PLAYER 1 :("
-
-#             # Create text label for result
-#             win_label = Label(root, text=win_text, 
-#                             font=("Terminal", 45),
-#                             fg="green", bg="#99D9EA",  # Set background to match style
-#                             padx=10, pady=10)
-#             lose_label = Label(root, text=lose_text, 
-#                             font=("Terminal", 45),
-#                             fg="red", bg="#99D9EA",  # Set background to match style
-#                             padx=10, pady=10)
-#             win_label_window = canvas.create_window(screen_width // 3.8, screen_height // 1.15, window=win_label)
-#             lose_label_window = canvas.create_window(screen_width // 1.4, screen_height // 1.15, window=lose_label)
-
-#         # Create text label for Play Again
-#         play_again_label = Label(root, text="Press Button to Play Again!", 
-#                         font=("Terminal", 20),
-#                         fg="black", bg="#99D9EA",  # Set background to match style
-#                         padx=10, pady=10)
-#         play_again_label_window = canvas.create_window(screen_width // 2.0, screen_height // 1.275, window=play_again_label)
-
-
-#         root.mainloop()
 
 start_screen_on = True
 
@@ -451,9 +352,7 @@ def main():
 
 
     pygame.init()
-    # screen_dpi = 96
-    # pixel_size = (point_size * screen_dpi) / 72
-    # print(pixel_size)
+    
     screen_info = pygame.display.Info()
     point_size = 500
     font = pygame.font.Font(None, point_size)
@@ -468,18 +367,11 @@ def main():
     
     turn_swap_needed = False
     
-    
-    # For other threads, I will declare them here, but I will START them elsewhere
-    
-    
     while running:
-        # poll for events
-        # pygame.QUIT event means the user clicked X to close your window
         for event in pygame.event.get():
             if event.type == pygame.QUIT: #
                 running = False
 
-        # fill the screen with a color to wipe away anything from last frame
         screen.fill("blue")
         text = f"{p1.health}-{p2.health}"
         txt_surface = font.render(text, True, pygame.Color('green'))
@@ -488,28 +380,8 @@ def main():
         txt_rect.center = (w//2, h//2)
         screen.blit(txt_surface, txt_rect)
 
-        # RENDER YOUR GAME HERE
-        #Create group of cards
-        # p1_cards = pygame.sprite.Group() #creates group of cards for P1(bottom of screen)
-
-        
-        # this_card_1 = Card(screen, path_to_cards[uid_Consort_Radahn_1], uid_Consort_Radahn_1, convert_ir_matrix_to_coords(2,5))
-        # this_card_1.old_place_card()
-        # this_card_2 = Card(screen, path_to_cards[uid_Godfrey_2], uid_Godfrey_2, convert_ir_matrix_to_coords(2,7))
-        # this_card_2.old_place_card()
-        
-        # this_card_3 = Card(screen, path_to_cards[uid_Consort_Radahn_1], uid_Consort_Radahn_1, convert_ir_matrix_to_coords(2,0))
-        # this_card_3.old_place_card()
-        # this_card_4 = Card(screen, path_to_cards[uid_Godfrey_2], uid_Godfrey_2, convert_ir_matrix_to_coords(2,2))
-        # this_card_4.old_place_card()
-
-        # this_card_5 = Card(screen, path_to_cards[uid_Consort_Radahn_1], uid_Consort_Radahn_1, convert_ir_matrix_to_coords(4,0))
-        # this_card_5.old_place_card()
-        # this_card_6 = Card(screen, path_to_cards[uid_Godfrey_2], uid_Godfrey_2, convert_ir_matrix_to_coords(5,0))
-        # this_card_6.old_place_card()
 
         if current_state == 0:
-            # Maybe have some kind of start Game with button press window
             pass
         elif current_state == "IDLE":
             placed_cards.draw(screen)
@@ -544,13 +416,6 @@ def main():
                 # print(CardStats[uid])
                 if(was_placed):
                     if uid != 0:
-                        # changed_group = 0
-                        # changed_sensor = 0
-                        # for i in range(len(group_place_indexes)):
-                            # if (sensor_place_indexes[i] == 0 or sensor_place_indexes[i] == 2 or sensor_place_indexes[i] == 5 or sensor_place_indexes[i] == 7):
-                                # changed_group = group_place_indexes[i]
-                                # changed_sensor = sensor_place_indexes[i]
-                                # break
                                     
                         # PLACING THE CARD
                         this_card = Card(screen, path_to_cards[uid], uid,
@@ -600,16 +465,6 @@ def main():
                         if card_location[changed_group][changed_sensor+1] is not None and card_location[changed_group][changed_sensor] is None:
                             card_location[changed_group][changed_sensor] = card_location[changed_group][changed_sensor+1]
                             print("ROLE WAS PLACED")
-                    # else:
-                    #     was_placed = False
-                    #     has_changed = False
-                    #     continue
-                    # if changed_sensor == 1 or changed_sensor == 3:
-                    #     if card_location[changed_group][changed_sensor-1] is not None:
-                    #         card_location[changed_group][changed_sensor] = card_location[changed_group][changed_sensor-1]
-                    # elif changed_sensor == 4 or changed_sensor == 6:
-                    #     if card_location[changed_group][changed_sensor+1] is not None:
-                    #         card_location[changed_group][changed_sensor] = card_location[changed_group][changed_sensor+1]
 
 
                     print("has_changed and was_placed")
@@ -623,16 +478,6 @@ def main():
                     print("ROTATED SPRITE ADDED")
                             
                     
-                    # for i in range(len(card_location)):
-                    #     for j in range(len(card_location[i])):
-                    #         if card_location[i][j] is not None:
-                    #             if j+1 < 8:
-                    #                 if card_location[i][j+1] is not None:
-                    #                     if card_location[i][j].uid == card_location[i][j+1].uid:
-                    #                         placed_cards.remove(card_location[i][j]) #remove unrotated version
-                    #                         card_location[i][j].rotate_card()
-                    #                         placed_cards.add(card_location[i][j])  
-                    #                         print("ROTATED SPRITE ADDED")
                     was_placed = False
                     has_changed = False
                 elif(was_removed):
@@ -661,13 +506,6 @@ def main():
                 # print(CardStats[uid])
                 if(was_placed):
                     if uid != 0:
-                        changed_group = 0
-                        changed_sensor = 0
-                        for i in range(len(group_place_indexes)):
-                            if (sensor_place_indexes[i] == 0 or sensor_place_indexes[i] == 2 or sensor_place_indexes[i] == 5 or sensor_place_indexes[i] == 7):
-                                changed_group = group_place_indexes[i]
-                                changed_sensor = sensor_place_indexes[i]
-                                break
                         # PLACING THE CARD
                         this_card = Card(screen, path_to_cards[uid], uid,
                                         convert_ir_matrix_to_coords(changed_group,changed_sensor))
@@ -742,7 +580,6 @@ def main():
                                     p1_blockers.append(card_location[group_idx][sensor_idx])
                                 else:
                                     p2_blockers.append(card_location[group_idx][sensor_idx])
-                                # group_health[group_idx] += card_location[group_idx][sensor_idx].health
                                 # print("GROUP HEALTH")
                                 # print(group_health)
             for group_idx in range(len(group_damage)):
@@ -754,15 +591,6 @@ def main():
                             p2_damage_taken -= card.health
                             card.health = 0
                             print(f"{card.name} GOT COOKED, remove it from the board")
-                            # gp_idx = -1
-                            # for i in range(len(6)):
-                            #     try:
-                            #         gp_idx = i
-                            #         sr_idx = card_location[i].index(card)
-                            #         break
-                            #     except ValueError:
-                            #         pass
-                            # card_location[gp_idx][sr_idx] = None # REMOVES CARD OBJECT FROM EXISTENCE
                             placed_cards.remove(card)
                     print(f"p2 took {p2_damage_taken} damage")
                     if p2_damage_taken > 0:
