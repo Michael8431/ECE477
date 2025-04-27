@@ -14,6 +14,7 @@ from uids import *
 from tkinter import*
 from PIL import ImageTk, Image
 from pop_up_screens import *
+from dead_card_sprite import *
 
 
 #Sources Used: 
@@ -44,6 +45,7 @@ card_location = [[None, None, None, None, None, None, None, None],
              [None, None, None, None, None, None, None, None],
              [None, None, None, None, None, None, None, None],
              [None, None, None, None, None, None, None, None]]
+
 group_indexes = []
 sensor_indexes = []
 group_place_indexes = []
@@ -276,6 +278,24 @@ class CardClass():
         self.tapped = CardStats[ID]["tapped"] # Card Tapped State (0:untapped, 1:tapped)
 
 
+
+def card_died_animation(screen, placed_cards: pygame.sprite.Group, dead_card: Card):
+    # Place RED X on top of card
+    # Wait 5 Seconds
+    # Remove Red X
+    # Remove Card
+    red_x = Dead_Card_Sprite(dead_card)
+    placed_cards.add(red_x)
+    start_time = time.time()
+    cur_time = time.time()
+    while cur_time - start_time < 3: # Keep red X on for 2 Seconds
+        placed_cards.draw(screen)
+        cur_time = time.time()
+    placed_cards.remove(red_x) # Remove Red X after 2 Seconds
+
+    return
+
+
 #
 #   Bytestream is 53 bytes long
 #   
@@ -391,13 +411,6 @@ def main():
         txt_rect_2.centerx = w//2
         screen.blit(txt_surface_2, txt_rect_2)
 
-        # text_end_turn = f"<-- End Phase"
-        # txt_surface_end_turn = font_state.render(text_end_turn, True, pygame.Color('green'))
-        # txt_rect_end = txt_surface_end_turn.get_rect()
-        # txt_rect_end.left = 0
-        # txt_rect_end.centery = h//2
-        # screen.blit(txt_surface_end_turn, txt_rect_end)
-        
         ###########################
         text_end_turn = "<-- End Phase"
         words = text_end_turn.split(' ')
@@ -492,7 +505,7 @@ def main():
                         # PLACING THE CARD
                         this_card = Card(screen, path_to_cards[uid], uid,
                                         convert_ir_matrix_to_coords(changed_group,changed_sensor))
-                        this_card.place_card()
+                        # this_card.place_card()
                         card_location[changed_group][changed_sensor] = this_card
                         placed_cards.add(this_card)
                         print("added card to group")
@@ -581,7 +594,7 @@ def main():
                         # PLACING THE CARD
                         this_card = Card(screen, path_to_cards[uid], uid,
                                         convert_ir_matrix_to_coords(changed_group,changed_sensor))
-                        this_card.place_card()
+                        # this_card.place_card()
                         card_location[changed_group][changed_sensor] = this_card
                         placed_cards.add(this_card)
                         print("added card to group")
@@ -662,6 +675,7 @@ def main():
                         if p2_damage_taken > card.health:
                             p2_damage_taken -= card.health
                             card.health = 0
+                            
                             print(f"{card.name} GOT COOKED, remove it from the board")
                             placed_cards.remove(card)
                     print(f"p2 took {p2_damage_taken} damage")
@@ -674,6 +688,7 @@ def main():
                             p1_damage_taken -= card.health
                             card.health = 0
                             print(f"{card.name} GOT COOKED, remove it from the board")
+                            card_died_animation(screen,placed_cards,card)
                             placed_cards.remove(card)
                     print(f"p1 took {p1_damage_taken} damage")
                     if p1_damage_taken > 0:
