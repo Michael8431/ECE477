@@ -258,7 +258,7 @@ class PlayerClass():
         self.playerNum = playerNum # Personal Player Number
         self.health = health # Total Player Health Points
         # self.buttonPressed = buttonPressed # Has Player Pressed Button (0:no or 1:yes)
-        self.TheirTurn = -1 # Undecided yet so -1, 1 is Their Turn and 2 is other player's turn
+        self.theirTurn = -1 # Undecided yet so -1, 1 is Their Turn and 2 is other player's turn
     # Function for Player Damage
     def takeDamage(self, damage):
         self.health -= damage
@@ -335,15 +335,15 @@ def main():
 
     current_port = '/dev/ttyUSB0' # Change to what your device manager says
 
-    ser = serial.Serial(port=current_port, baudrate=115200, timeout=1)
+    # ser = serial.Serial(port=current_port, baudrate=115200, timeout=1)
 
-    # ser = 0 # Swap with this to run without microcontroller
+    ser = 0 # Swap with this to run without microcontroller
 
     startScreen()
 
     thread = threading.Thread(target=read_from_port, args=(ser,))
     thread.daemon = True
-    thread.start() # Comment this out to run without Micro
+    # thread.start() # Comment this out to run without Micro
 
     states = ['RST', 'IDLE', 'ACTIVEPLACE', 'ACTIVEROLE', 'PASSIVEPLACE']
 
@@ -356,6 +356,7 @@ def main():
     screen_info = pygame.display.Info()
     point_size = 500
     font = pygame.font.Font(None, point_size)
+    font_state = pygame.font.Font(None, point_size//3)
     screen = pygame.display.set_mode((screen_info.current_w, screen_info.current_h), pygame.NOFRAME) # NOFRAME for borderless window, FULLSCREEN for fullscreen
     clock = pygame.time.Clock()
     running = True
@@ -373,12 +374,75 @@ def main():
                 running = False
 
         screen.fill("blue")
-        text = f"{p1.health}-{p2.health}"
-        txt_surface = font.render(text, True, pygame.Color('green'))
+        # text = f"{p1.health}-{p2.health}"
+        text_p1 = f"P1:{p1.health}HP"
+        txt_surface = font.render(text_p1, True, pygame.Color('green'))
         txt_rect = txt_surface.get_rect()
         w, h = screen.get_size()
-        txt_rect.center = (w//2, h//2)
+        txt_rect.bottom = h
+        txt_rect.centerx = w//2
+
         screen.blit(txt_surface, txt_rect)
+
+        text_p2 = f"P2:{p2.health}HP"
+        txt_surface_2 = font.render(text_p2, True, pygame.Color('green'))
+        txt_rect_2 = txt_surface_2.get_rect()
+        txt_rect_2.top = 0
+        txt_rect_2.centerx = w//2
+        screen.blit(txt_surface_2, txt_rect_2)
+
+        # text_end_turn = f"<-- End Phase"
+        # txt_surface_end_turn = font_state.render(text_end_turn, True, pygame.Color('green'))
+        # txt_rect_end = txt_surface_end_turn.get_rect()
+        # txt_rect_end.left = 0
+        # txt_rect_end.centery = h//2
+        # screen.blit(txt_surface_end_turn, txt_rect_end)
+        
+        ###########################
+        text_end_turn = "<-- End Phase"
+        words = text_end_turn.split(' ')
+
+        x = 0
+        # y = h // 2
+        y = h // 3
+
+        line_spacing = 5
+        max_width = 200
+
+        lines = []
+        current_line = ""
+
+        for word in words:
+            test_line = current_line + (" " if current_line else "") + word
+            test_surface = font_state.render(test_line, True, pygame.Color('green'))
+            if test_surface.get_width() > max_width:
+                lines.append(current_line)
+                current_line = word
+            else:
+                current_line = test_line
+
+        if current_line:
+            lines.append(current_line)
+
+        for line in lines:
+            txt_surface_end_turn = font_state.render(line, True, pygame.Color('green'))
+            txt_rect_end = txt_surface_end_turn.get_rect()
+            txt_rect_end.left = 0
+            txt_rect_end.top = y
+            screen.blit(txt_surface_end_turn, txt_rect_end)
+            y += txt_surface_end_turn.get_height() + line_spacing
+
+        ###########################
+
+        if p1.theirTurn != -1 and p2.theirTurn != -1:
+            this_player_turn = "P1's Turn" if p1.theirTurn == 1 else "P2's Turn"
+            # print(f"P1={p1.theirTurn} P2={p2.theirTurn}")
+            text_state = f"{this_player_turn}: {current_state} Phase"
+            txt_surface_state = font_state.render(text_state, True, pygame.Color('green'))
+            txt_rect_state = txt_surface_state.get_rect()
+            txt_rect_state.center = (w//2, h//2)
+            
+            screen.blit(txt_surface_state, txt_rect_state)
 
 
         if current_state == 0:
@@ -388,8 +452,12 @@ def main():
             if first_loop:
                 random_num = random.randint(1,2)
                 if random_num == 1:
+                    p1.theirTurn = 1
+                    p2.theirTurn = 2
                     print("P1 goes first")
                 else:
+                    p2.theirTurn = 1
+                    p1.theirTurn = 2
                     print("P2 goes first")
                 first_loop = False
             else:
@@ -405,8 +473,12 @@ def main():
                     else:
                         random_num = 1
                     if random_num == 1:
+                        p1.theirTurn = 1
+                        p2.theirTurn = 2
                         print("P1 goes first next")
                     else:
+                        p2.theirTurn = 1
+                        p1.theirTurn = 2
                         print("P2 goes first next")
                     turn_swap_needed = False
 
