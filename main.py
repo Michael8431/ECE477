@@ -335,15 +335,15 @@ def main():
 
     current_port = '/dev/ttyUSB0' # Change to what your device manager says
 
-    # ser = serial.Serial(port=current_port, baudrate=115200, timeout=1)
+    ser = serial.Serial(port=current_port, baudrate=115200, timeout=1)
 
-    ser = 0 # Swap with this to run without microcontroller
+    # ser = 0 # Swap with this to run without microcontroller
 
     startScreen()
 
     thread = threading.Thread(target=read_from_port, args=(ser,))
     thread.daemon = True
-    # thread.start() # Comment this out to run without Micro
+    thread.start() # Comment this out to run without Micro
 
     states = ['RST', 'IDLE', 'ACTIVEPLACE', 'ACTIVEROLE', 'PASSIVEPLACE']
 
