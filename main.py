@@ -355,15 +355,15 @@ def main():
 
     current_port = '/dev/ttyUSB0' # Change to what your device manager says
 
-    ser = serial.Serial(port=current_port, baudrate=115200, timeout=1)
+    # ser = serial.Serial(port=current_port, baudrate=115200, timeout=1)
 
-    # ser = 0 # Swap with this to run without microcontroller
+    ser = 0 # Swap with this to run without microcontroller
 
     startScreen()
 
     thread = threading.Thread(target=read_from_port, args=(ser,))
     thread.daemon = True
-    thread.start() # Comment this out to run without Micro
+    # thread.start() # Comment this out to run without Micro
 
     states = ['RST', 'IDLE', 'ACTIVEPLACE', 'ACTIVEROLE', 'PASSIVEPLACE']
 
@@ -376,7 +376,7 @@ def main():
     screen_info = pygame.display.Info()
     point_size = 500
     font = pygame.font.Font(None, point_size)
-    font_state = pygame.font.Font(None, point_size//3)
+    font_state = pygame.font.Font(None, point_size//5)
     screen = pygame.display.set_mode((screen_info.current_w, screen_info.current_h), pygame.NOFRAME) # NOFRAME for borderless window, FULLSCREEN for fullscreen
     clock = pygame.time.Clock()
     running = True
@@ -393,8 +393,7 @@ def main():
             if event.type == pygame.QUIT: #
                 running = False
 
-        screen.fill("blue")
-        # text = f"{p1.health}-{p2.health}"
+        screen.fill("black")
         text_p1 = f"P1:{p1.health}HP"
         txt_surface = font.render(text_p1, True, pygame.Color('green'))
         txt_rect = txt_surface.get_rect()
@@ -450,7 +449,16 @@ def main():
         if p1.theirTurn != -1 and p2.theirTurn != -1:
             this_player_turn = "P1's Turn" if p1.theirTurn == 1 else "P2's Turn"
             # print(f"P1={p1.theirTurn} P2={p2.theirTurn}")
-            text_state = f"{this_player_turn}: {current_state} Phase"
+            player_message = ""
+            if current_state == "IDLE":
+                player_message = "Begin Turn with Button"
+            elif current_state == "ACTIVEPLACE":
+                player_message = "Scan and Place"
+            elif current_state == "ACTIVEROLE":
+                player_message = "Rotate Cards"
+            elif current_state == "PASSIVEPLACE":
+                player_message = "Scan and Place"
+            text_state = f"{this_player_turn}: {player_message}"
             txt_surface_state = font_state.render(text_state, True, pygame.Color('green'))
             txt_rect_state = txt_surface_state.get_rect()
             txt_rect_state.center = (w//2, h//2)
