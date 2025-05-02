@@ -355,15 +355,15 @@ def main():
 
     current_port = '/dev/ttyUSB0' # Change to what your device manager says
 
-    ser = serial.Serial(port=current_port, baudrate=115200, timeout=1)
+    # ser = serial.Serial(port=current_port, baudrate=115200, timeout=1)
 
-    # ser = 0 # Swap with this to run without microcontroller
+    ser = 0 # Swap with this to run without microcontroller
 
     startScreen()
 
     thread = threading.Thread(target=read_from_port, args=(ser,))
     thread.daemon = True
-    thread.start() # Comment this out to run without Micro
+    # thread.start() # Comment this out to run without Micro
 
     states = ['RST', 'IDLE', 'ACTIVEPLACE', 'ACTIVEROLE', 'PASSIVEPLACE']
 
@@ -374,9 +374,9 @@ def main():
     pygame.init()
     
     screen_info = pygame.display.Info()
-    point_size = 500
+    point_size = 300
     font = pygame.font.Font(None, point_size)
-    font_state = pygame.font.Font(None, point_size//5)
+    font_state = pygame.font.Font(None, point_size//7)
     screen = pygame.display.set_mode((screen_info.current_w, screen_info.current_h), pygame.NOFRAME) # NOFRAME for borderless window, FULLSCREEN for fullscreen
     clock = pygame.time.Clock()
     running = True
@@ -460,6 +460,8 @@ def main():
                 player_message = "Scan and Place"
             text_state = f"{this_player_turn}: {player_message}"
             txt_surface_state = font_state.render(text_state, True, pygame.Color('green'))
+            if this_player_turn == "P2's Turn":
+                txt_surface_state = pygame.transform.rotate(txt_surface_state, 180)
             txt_rect_state = txt_surface_state.get_rect()
             txt_rect_state.center = (w//2, h//2)
             
