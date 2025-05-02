@@ -14,7 +14,7 @@ from uids import *
 from tkinter import*
 from PIL import ImageTk, Image
 from pop_up_screens import *
-from dead_card_sprite import *
+# from dead_card_sprite import *
 
 
 #Sources Used: 
@@ -279,21 +279,21 @@ class CardClass():
 
 
 
-def card_died_animation(screen, placed_cards: pygame.sprite.Group, dead_card: Card):
-    # Place RED X on top of card
-    # Wait 5 Seconds
-    # Remove Red X
-    # Remove Card
-    red_x = Dead_Card_Sprite(dead_card)
-    placed_cards.add(red_x)
-    start_time = time.time()
-    cur_time = time.time()
-    while cur_time - start_time < 3: # Keep red X on for 2 Seconds
-        placed_cards.draw(screen)
-        cur_time = time.time()
-    placed_cards.remove(red_x) # Remove Red X after 2 Seconds
+# def card_died_animation(screen, placed_cards: pygame.sprite.Group, dead_card: Card):
+#     # Place RED X on top of card
+#     # Wait 5 Seconds
+#     # Remove Red X
+#     # Remove Card
+#     red_x = Dead_Card_Sprite(dead_card)
+#     placed_cards.add(red_x)
+#     start_time = time.time()
+#     cur_time = time.time()
+#     while cur_time - start_time < 3: # Keep red X on for 2 Seconds
+#         placed_cards.draw(screen)
+#         cur_time = time.time()
+#     placed_cards.remove(red_x) # Remove Red X after 2 Seconds
 
-    return
+#     return
 
 
 #
@@ -696,7 +696,7 @@ def main():
                             p1_damage_taken -= card.health
                             card.health = 0
                             print(f"{card.name} GOT COOKED, remove it from the board")
-                            card_died_animation(screen,placed_cards,card)
+                            # card_died_animation(screen,placed_cards,card)
                             placed_cards.remove(card)
                     print(f"p1 took {p1_damage_taken} damage")
                     if p1_damage_taken > 0:
