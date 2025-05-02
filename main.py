@@ -455,9 +455,9 @@ def main():
             elif current_state == "ACTIVEPLACE":
                 player_message = "Scan and Place"
             elif current_state == "ACTIVEROLE":
-                player_message = "Rotate Cards"
+                player_message = "Rotate Attackers"
             elif current_state == "PASSIVEPLACE":
-                player_message = "Scan and Place"
+                player_message = "Place Defenders"
             text_state = f"{this_player_turn}: {player_message}"
             txt_surface_state = font_state.render(text_state, True, pygame.Color('green'))
             if this_player_turn == "P2's Turn":
